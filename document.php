@@ -104,6 +104,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
+        $commission = '';
+        if ($type === 'step2_pv') {
+            $commission = trim($_POST['commission'] ?? '');
+        }
         $preceding = null;
         if (!empty($cfg['requires']) && $cfg['requires'] !== 'step1_reclamation') {
             $x = $pdo->prepare("SELECT id FROM documents_officiels WHERE batiment_id=? AND type=?");
@@ -155,6 +159,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 :expert_name,:report_type,:heritage_needed,:heritage_direction,:appointment_date,:decision_type,:attachment_path,:observations)";
         }
         $pdo->prepare($sql)->execute($payload);
+        if ($type === 'step2_pv') {
+            $pdo->prepare("UPDATE batiments SET commission=? WHERE id=?")
+                ->execute([$commission !== '' ? $commission : null, (int)$id]);
+        }
         header("Location: document.php?id=$id&type=$type&saved=1");
         exit;
     }
@@ -230,6 +238,7 @@ if (in_array($type, ['step3_expert_request','step4_expert_report'], true)) {
                 <div><label>المكان</label><select name="address_id"><option value="">-- اختر عنوانا --</option><?php foreach($addresses as $a): ?><option value="<?= $a['id'] ?>" <?= ((int)($doc['address_id'] ?? 0) === (int)$a['id']) ? 'selected' : '' ?>><?= htmlspecialchars($a['libelle']) ?></option><?php endforeach; ?></select></div>
                 <div><label>حالة المحضر</label><select name="pv_state_id"><option value="">--</option><?php foreach($pvStates as $s): ?><option value="<?= $s['id'] ?>" <?= ((int)($doc['pv_state_id'] ?? 0) === (int)$s['id']) ? 'selected' : '' ?>><?= htmlspecialchars($s['libelle']) ?></option><?php endforeach; ?></select></div>
                 <div><label><input type="checkbox" name="forward_to_ministry" value="1" <?= !empty($doc['forward_to_ministry']) ? 'checked' : '' ?>> توجيه وزارة التجهيز (اختياري)</label></div>
+                <div class="full"><label>أعضاء اللجنة</label><textarea name="commission"><?= htmlspecialchars($_POST['commission'] ?? ($case['commission'] ?? '')) ?></textarea></div>
             <?php endif; ?>
 
             <?php if ($type === 'step3_expert_request'): ?>
