@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        $commission = null;
+        $commission = '';
         if ($type === 'step2_pv') {
             $commission = trim($_POST['commission'] ?? '');
         }
@@ -161,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->prepare($sql)->execute($payload);
         if ($type === 'step2_pv') {
             $pdo->prepare("UPDATE batiments SET commission=? WHERE id=?")
-                ->execute([$commission !== '' ? $commission : null, $id]);
+                ->execute([$commission !== '' ? $commission : null, (int)$id]);
         }
         header("Location: document.php?id=$id&type=$type&saved=1");
         exit;

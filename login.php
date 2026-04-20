@@ -107,8 +107,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <form method="POST">
         <div class="fg">
-            <label>اسم المستخدم</label>
-            <input type="text" name="username" autocomplete="username" required value="<?= htmlspecialchars($_POST['username'] ?? '') ?>">
+            <label for="username">اسم المستخدم</label>
+            <input id="username" type="text" name="username" autocomplete="username" required value="<?= htmlspecialchars($_POST['username'] ?? '') ?>">
         </div>
 
         <div class="fg">
