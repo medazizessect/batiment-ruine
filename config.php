@@ -18,6 +18,51 @@ function currentRole() {
     return $_SESSION['user']['role'] ?? '';
 }
 
+function stepTypes() {
+    return [
+        'step1_reclamation',
+        'step2_pv',
+        'step3_expert_request',
+        'step4_expert_report',
+        'step5_decision',
+    ];
+}
+
+function normalizeStepPermissions($raw, $role = '') {
+    $all = stepTypes();
+    if ($role === 'admin') {
+        return array_fill_keys($all, true);
+    }
+
+    $normalized = array_fill_keys($all, false);
+
+    if (is_string($raw) && $raw !== '') {
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) $raw = $decoded;
+    }
+
+    if (is_array($raw)) {
+        foreach ($all as $step) {
+            if (array_key_exists($step, $raw) && !empty($raw[$step])) {
+                $normalized[$step] = true;
+            } elseif (in_array($step, $raw, true)) {
+                $normalized[$step] = true;
+            }
+        }
+        return $normalized;
+    }
+
+    $legacyMap = [
+        'haifa' => ['step1_reclamation', 'step2_pv'],
+        'khaoula' => ['step3_expert_request', 'step4_expert_report'],
+        'mohamed' => ['step5_decision'],
+    ];
+    foreach ($legacyMap[$role] ?? [] as $step) {
+        $normalized[$step] = true;
+    }
+    return $normalized;
+}
+
 function hasAnyRole($roles) {
     if (!isLoggedIn()) return false;
     return in_array(currentRole(), $roles, true);
@@ -48,15 +93,8 @@ function hasRole($role) {
 function hasStepAccess($stepType) {
     if (!isLoggedIn()) return false;
     if (currentRole() === 'admin') return true;
-
-    $map = [
-        'step1_reclamation'   => ['haifa'],
-        'step2_pv'            => ['haifa'],
-        'step3_expert_request'=> ['khaoula'],
-        'step4_expert_report' => ['khaoula'],
-        'step5_decision'      => ['mohamed'],
-    ];
-    return in_array(currentRole(), $map[$stepType] ?? [], true);
+    $permissions = normalizeStepPermissions($_SESSION['user']['step_permissions'] ?? null, currentRole());
+    return !empty($permissions[$stepType]);
 }
 
 function requireLogin() {
@@ -94,6 +132,7 @@ function roleLabel($role) {
         'haifa' => 'HAIFA',
         'khaoula' => 'KHAOULA',
         'mohamed' => 'MOHAMED',
+        'user' => 'مستخدم',
     ][$role] ?? $role;
 }
 ?>
