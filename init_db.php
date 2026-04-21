@@ -50,6 +50,7 @@ try {
     $pdo->exec("DROP TABLE IF EXISTS batiments");
     $pdo->exec("DROP TABLE IF EXISTS adresses");
     $pdo->exec("DROP TABLE IF EXISTS pv_states");
+    $pdo->exec("DROP TABLE IF EXISTS commission_membres");
     $pdo->exec("DROP TABLE IF EXISTS membres");
     $pdo->exec("DROP TABLE IF EXISTS modeles_documents");
 
@@ -92,6 +93,16 @@ try {
         CREATE TABLE pv_states (
             id INT AUTO_INCREMENT PRIMARY KEY,
             libelle VARCHAR(120) NOT NULL UNIQUE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
+    ");
+
+    $pdo->exec("
+        CREATE TABLE commission_membres (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nom VARCHAR(120) NOT NULL,
+            titre VARCHAR(180) NOT NULL,
+            ordre INT NOT NULL DEFAULT 0,
+            actif TINYINT(1) DEFAULT 1
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
     ");
 
@@ -164,6 +175,12 @@ try {
     $insUser->execute(['KHAOULA', 'khaoula', 'khaoula', password_hash('khaoula123', PASSWORD_DEFAULT)]);
     $insUser->execute(['MOHAMED', 'mohamed', 'mohamed', password_hash('mohamed123', PASSWORD_DEFAULT)]);
 
+    $insCm = $pdo->prepare("INSERT INTO commission_membres (nom, titre, ordre, actif) VALUES (?,?,?,1)");
+    $insCm->execute(['هيفاء شحاتة', 'مهندسة مدنية معمارية', 1]);
+    $insCm->execute(['محمد إسماعيل', 'ممثل عن بلدية سوسة', 2]);
+    $insCm->execute(['رضا مصباح', 'ممثل عن الإدارة الجهوية للتجهيز والإسكان', 3]);
+    $insCm->execute(['غازي عبودة', 'ممثل عن المعهد الوطني للتراث بالساحل', 4]);
+
     $pdo->exec("
         CREATE TABLE modeles_documents (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -204,7 +221,7 @@ try {
     .b{background:#fff;padding:35px 42px;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.12);text-align:center}
     a{display:inline-block;margin-top:15px;padding:10px 20px;background:#1a3c5e;color:#fff;text-decoration:none;border-radius:8px}</style>
     </head><body><div class='b'><h2>✅ تم تحديث قاعدة البيانات</h2>
-    <p>خطوات جديدة + أدوار + عناوين + حالات محضر</p>
+    <p>خطوات جديدة + أدوار + عناوين + أعضاء اللجنة</p>
     <p>عدد العناوين: ".(int)$pdo->query("SELECT COUNT(*) FROM adresses")->fetchColumn()."</p>
     <a href='index.php'>الدخول للتطبيق</a></div></body></html>";
 } catch (PDOException $e) {
