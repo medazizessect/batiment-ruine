@@ -3,15 +3,7 @@ require 'config.php';
 requireRole('admin');
 require 'db.php';
 
-$pdo->exec("
-    CREATE TABLE IF NOT EXISTS commission_membres (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nom VARCHAR(120) NOT NULL,
-        titre VARCHAR(180) NOT NULL,
-        ordre INT NOT NULL DEFAULT 0,
-        actif TINYINT(1) DEFAULT 1
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
-");
+$hasCommissionTable = (bool)$pdo->query("SHOW TABLES LIKE 'commission_membres'")->fetchColumn();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -40,14 +32,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($lib !== '') $pdo->prepare("INSERT IGNORE INTO adresses (libelle) VALUES (?)")->execute([$lib]);
     } elseif ($action === 'delete_address') {
         $pdo->prepare("DELETE FROM adresses WHERE id=?")->execute([intval($_POST['id'] ?? 0)]);
-    } elseif ($action === 'add_commission_member') {
+    } elseif ($action === 'add_commission_member' && $hasCommissionTable) {
         $nom = trim($_POST['nom'] ?? '');
         $titre = trim($_POST['titre'] ?? '');
         if ($nom !== '' && $titre !== '') {
             $pdo->prepare("INSERT INTO commission_membres (nom, titre, ordre, actif) VALUES (?,?,?,1)")
                 ->execute([$nom, $titre, intval($_POST['ordre'] ?? 0)]);
         }
-    } elseif ($action === 'delete_commission_member') {
+    } elseif ($action === 'delete_commission_member' && $hasCommissionTable) {
         $pdo->prepare("DELETE FROM commission_membres WHERE id=?")->execute([intval($_POST['id'] ?? 0)]);
     }
     header("Location: membres.php?ok=1");
@@ -56,7 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $users = $pdo->query("SELECT * FROM membres ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
 $addresses = $pdo->query("SELECT * FROM adresses ORDER BY libelle ASC LIMIT 1000")->fetchAll(PDO::FETCH_ASSOC);
-$commissionMembers = $pdo->query("SELECT * FROM commission_membres ORDER BY ordre ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
+$commissionMembers = $hasCommissionTable
+    ? $pdo->query("SELECT * FROM commission_membres ORDER BY ordre ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC)
+    : [];
 ?>
 <!doctype html>
 <html lang="ar" dir="rtl">
@@ -81,6 +75,9 @@ input,select{padding:7px 9px;border:1px solid #ddd;border-radius:7px;width:100%;
 
 <div class="card">
     <h3>أعضاء اللجنة (كيان مستقل عن المستخدمين)</h3>
+    <?php if (!$hasCommissionTable): ?>
+        <div style="background:#fff3cd;border:1px solid #ffeeba;padding:10px;border-radius:8px;margin-bottom:10px">⚠️ يرجى تشغيل init_db.php لإنشاء جدول أعضاء اللجنة.</div>
+    <?php endif; ?>
     <table>
         <tr><th>#</th><th>الاسم</th><th>الصفة / العنوان</th><th>إجراءات</th></tr>
         <?php foreach($commissionMembers as $cm): ?>

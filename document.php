@@ -93,7 +93,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $attachment = saveUploadIfAny('attachment');
     if ($attachment === null) $errors[] = "صيغة الملف غير مدعومة";
 
-    $statut = 'finalise';
     $numeroDoc = trim($_POST['numero_doc'] ?? '');
     if ($type === 'step2_pv' && $numeroDoc === '') $numeroDoc = nextPvNumber($pdo);
 
@@ -117,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $payload = [
-            ':bid' => $id, ':type' => $type, ':statut' => $statut, ':numero_doc' => ($numeroDoc ?: null),
+            ':bid' => $id, ':type' => $type, ':statut' => 'finalise', ':numero_doc' => ($numeroDoc ?: null),
             ':date_doc' => (($_POST['date_doc'] ?? '') ?: null), ':cin' => trim($_POST['cin'] ?? '') ?: null,
             ':owner_name' => trim($_POST['owner_name'] ?? '') ?: null,
             ':exploite_by' => in_array($_POST['exploite_by'] ?? '', ['oui','non'], true) ? $_POST['exploite_by'] : null,
