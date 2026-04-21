@@ -43,9 +43,7 @@ function normalizeStepPermissions($raw, $role = '') {
 
     if (is_array($raw)) {
         foreach ($all as $step) {
-            if (array_key_exists($step, $raw) && !empty($raw[$step])) {
-                $normalized[$step] = true;
-            } elseif (in_array($step, $raw, true)) {
+            if ((array_key_exists($step, $raw) && !empty($raw[$step])) || in_array($step, $raw, true)) {
                 $normalized[$step] = true;
             }
         }

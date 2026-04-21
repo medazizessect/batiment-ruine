@@ -13,7 +13,8 @@ $stepLabels = [
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
-    $selectedSteps = array_values(array_intersect(stepTypes(), $_POST['step_permissions'] ?? []));
+    $stepPermissionsInput = array_filter($_POST['step_permissions'] ?? [], 'is_string');
+    $selectedSteps = array_values(array_intersect(stepTypes(), $stepPermissionsInput));
     $stepPermissionsJson = json_encode($selectedSteps, JSON_UNESCAPED_UNICODE);
 
     if ($action === 'add_user') {
@@ -52,14 +53,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($toDelete) {
             $currentUsername = $_SESSION['user']['username'] ?? '';
             if ((string)$toDelete['username'] !== $currentUsername) {
+                $canDelete = false;
                 if ((string)$toDelete['role'] !== 'admin') {
-                    $pdo->prepare("DELETE FROM membres WHERE id=?")->execute([$id]);
+                    $canDelete = true;
                 } else {
                     $remainingAdminsStmt = $pdo->prepare("SELECT COUNT(*) FROM membres WHERE role='admin' AND id<>?");
                     $remainingAdminsStmt->execute([$id]);
                     $remainingAdmins = (int)$remainingAdminsStmt->fetchColumn();
-                    if ($remainingAdmins >= 1) $pdo->prepare("DELETE FROM membres WHERE id=?")->execute([$id]);
+                    $canDelete = ($remainingAdmins >= 1);
                 }
+                if ($canDelete) $pdo->prepare("DELETE FROM membres WHERE id=?")->execute([$id]);
             }
         }
     } elseif ($action === 'add_address') {
