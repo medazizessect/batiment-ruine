@@ -3,6 +3,8 @@ require 'config.php';
 requireRole('admin');
 require 'db.php';
 
+$hasCommissionTable = (bool)$pdo->query("SHOW TABLES LIKE 'commission_membres'")->fetchColumn();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     if ($action === 'add_user') {
@@ -30,6 +32,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($lib !== '') $pdo->prepare("INSERT IGNORE INTO adresses (libelle) VALUES (?)")->execute([$lib]);
     } elseif ($action === 'delete_address') {
         $pdo->prepare("DELETE FROM adresses WHERE id=?")->execute([intval($_POST['id'] ?? 0)]);
+    } elseif ($action === 'add_commission_member' && $hasCommissionTable) {
+        $nom = trim($_POST['nom'] ?? '');
+        $titre = trim($_POST['titre'] ?? '');
+        if ($nom !== '' && $titre !== '') {
+            $pdo->prepare("INSERT INTO commission_membres (nom, titre, ordre, actif) VALUES (?,?,?,1)")
+                ->execute([$nom, $titre, intval($_POST['ordre'] ?? 0)]);
+        }
+    } elseif ($action === 'delete_commission_member' && $hasCommissionTable) {
+        $pdo->prepare("DELETE FROM commission_membres WHERE id=?")->execute([intval($_POST['id'] ?? 0)]);
     }
     header("Location: membres.php?ok=1");
     exit;
@@ -37,6 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $users = $pdo->query("SELECT * FROM membres ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
 $addresses = $pdo->query("SELECT * FROM adresses ORDER BY libelle ASC LIMIT 1000")->fetchAll(PDO::FETCH_ASSOC);
+$commissionMembers = $hasCommissionTable
+    ? $pdo->query("SELECT * FROM commission_membres ORDER BY ordre ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC)
+    : [];
 ?>
 <!doctype html>
 <html lang="ar" dir="rtl">
@@ -58,6 +72,39 @@ input,select{padding:7px 9px;border:1px solid #ddd;border-radius:7px;width:100%;
 <header><h2 style="margin:0">⚙️ إدارة الحسابات والعناوين</h2></header>
 <div class="wrap">
 <?php if (!empty($_GET['ok'])): ?><div style="background:#d4edda;padding:10px;border:1px solid #c3e6cb;border-radius:8px;margin-bottom:10px">✅ تم الحفظ</div><?php endif; ?>
+
+<div class="card">
+    <h3>أعضاء اللجنة (كيان مستقل عن المستخدمين)</h3>
+    <?php if (!$hasCommissionTable): ?>
+        <div style="background:#fff3cd;border:1px solid #ffeeba;padding:10px;border-radius:8px;margin-bottom:10px">⚠️ يرجى تشغيل init_db.php لإنشاء جدول أعضاء اللجنة.</div>
+    <?php endif; ?>
+    <table>
+        <tr><th>#</th><th>الاسم</th><th>الصفة / العنوان</th><th>إجراءات</th></tr>
+        <?php foreach($commissionMembers as $cm): ?>
+        <tr>
+            <td><?= (int)$cm['ordre'] ?></td>
+            <td><?= htmlspecialchars($cm['nom']) ?></td>
+            <td><?= htmlspecialchars($cm['titre']) ?></td>
+            <td>
+                <form method="POST" onsubmit="return confirm('حذف العضو؟')">
+                    <input type="hidden" name="action" value="delete_commission_member">
+                    <input type="hidden" name="id" value="<?= $cm['id'] ?>">
+                    <button class="btn b3" type="submit">🗑️</button>
+                </form>
+            </td>
+        </tr>
+        <?php endforeach; ?>
+        <tr>
+            <form method="POST">
+                <input type="hidden" name="action" value="add_commission_member">
+                <td><input type="number" name="ordre" value="0"></td>
+                <td><input name="nom" required></td>
+                <td><input name="titre" required></td>
+                <td><button class="btn b1" type="submit">➕</button></td>
+            </form>
+        </tr>
+    </table>
+</div>
 
 <div class="card">
     <h3>الحسابات والصلاحيات</h3>
