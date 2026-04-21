@@ -14,7 +14,7 @@ $stepLabels = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $stepPermissionsInput = array_filter($_POST['step_permissions'] ?? [], 'is_string');
-    $selectedSteps = array_values(array_intersect(stepTypes(), $stepPermissionsInput));
+    $selectedSteps = array_values(array_unique(array_intersect(stepTypes(), $stepPermissionsInput)));
     $stepPermissionsJson = json_encode($selectedSteps, JSON_UNESCAPED_UNICODE);
 
     if ($action === 'add_user') {
