@@ -1,17 +1,33 @@
 <?php
 require 'config.php';
-requireLogin();
 require 'db.php';
 require '_steps_config.php';
 
+$isLoggedIn = isLoggedIn();
 $search = trim($_GET['search'] ?? '');
-if ($search !== '') {
-    $q = $pdo->prepare("SELECT * FROM batiments WHERE bureau_ordre_id LIKE :s OR proprietaire LIKE :s ORDER BY id DESC");
+if (!$isLoggedIn && $search === '') {
+    $rows = [];
+} elseif ($search !== '') {
+    $q = $pdo->prepare("
+        SELECT b.*
+        FROM batiments b
+        WHERE b.bureau_ordre_id LIKE :s
+           OR b.proprietaire LIKE :s
+           OR b.lieu LIKE :s
+           OR EXISTS (
+               SELECT 1
+               FROM documents_officiels d
+               LEFT JOIN adresses a ON a.id = d.address_id
+               WHERE d.batiment_id = b.id AND a.libelle LIKE :s
+           )
+        ORDER BY b.id DESC
+    ");
     $q->execute([':s' => "%$search%"]);
+    $rows = $q->fetchAll(PDO::FETCH_ASSOC);
 } else {
     $q = $pdo->query("SELECT * FROM batiments ORDER BY id DESC");
+    $rows = $q->fetchAll(PDO::FETCH_ASSOC);
 }
-$rows = $q->fetchAll(PDO::FETCH_ASSOC);
 
 $docs = [];
 if ($rows) {
@@ -36,6 +52,12 @@ function rowStatus($docSet) {
     if (!empty($docSet['step2_pv']) || !empty($docSet['step3_expert_request']) || !empty($docSet['step4_expert_report'])) return ['progress', 'قيد المعالجة', '#fff3cd'];
     return ['new', 'في الشكاية (مرحلة 1)', '#f8d7da'];
 }
+
+$stats = ['new' => 0, 'progress' => 0, 'done' => 0];
+foreach ($rows as $r) {
+    [$k] = rowStatus($docs[$r['id']] ?? []);
+    $stats[$k]++;
+}
 ?>
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -51,6 +73,9 @@ header{background:linear-gradient(135deg,#1a3c5e,#2e6da4);color:white;padding:16
 .btn{padding:8px 12px;border-radius:7px;border:none;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
 .b-add{background:#28a745;color:#fff}.b-cancel{background:#6c757d;color:#fff}
 .search{display:flex}.search input{border:1px solid #ddd;padding:8px 10px;border-radius:0 8px 8px 0}.search button{border:1px solid #ddd;background:#2e6da4;color:white;padding:8px 12px;border-radius:8px 0 0 8px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:12px}
+.stat{background:#fff;border-radius:10px;padding:10px 12px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.stat b{font-size:20px;display:block}
 .table-wrap{max-height:calc(100vh - 200px);overflow:auto;border-radius:12px;box-shadow:0 3px 14px rgba(0,0,0,.09)}
 table{width:100%;border-collapse:collapse;background:#fff;min-width:1200px}
 thead th{position:sticky;top:0;z-index:2;background:linear-gradient(135deg,#1a3c5e,#2e6da4);color:#fff;padding:11px;border:1px solid rgba(255,255,255,.2);font-size:12px}
@@ -63,18 +88,28 @@ tbody td{padding:8px;border:1px solid #e9ecef;font-size:12px;vertical-align:top}
 </style>
 </head>
 <body>
-<?php include '_menu.php'; ?>
-<header><h2 style="margin:0">متابعة المسار (5 مراحل)</h2></header>
+<?php if ($isLoggedIn) include '_menu.php'; ?>
+<header><h2 style="margin:0">متابعة المسار</h2></header>
 <div class="wrap">
+    <?php if (!$isLoggedIn && $search === ''): ?><div style="background:#fff3cd;border:1px solid #ffeeba;padding:10px;border-radius:8px;margin-bottom:10px">🔎 أدخل عنوانًا للبحث في الملفات</div><?php endif; ?>
     <?php if (!empty($_GET['msg'])): ?><div style="background:#d4edda;border:1px solid #c3e6cb;padding:10px;border-radius:8px;margin-bottom:10px">✅ تمت العملية بنجاح</div><?php endif; ?>
     <div class="toolbar">
         <div>
-            <?php if (hasStepAccess('step1_reclamation')): ?><a class="btn b-add" href="ajouter.php">➕ إضافة شكاية</a><?php endif; ?>
+            <?php if ($isLoggedIn && hasStepAccess('step1_reclamation')): ?><a class="btn b-add" href="ajouter.php">➕ إضافة شكاية</a><?php endif; ?>
+            <?php if (!$isLoggedIn): ?><a class="btn b-cancel" href="login.php">🔐 تسجيل الدخول</a><?php endif; ?>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
-            <form method="GET" class="search"><button aria-label="بحث">🔍</button><input name="search" value="<?= htmlspecialchars($search) ?>" placeholder="ID bureau d'ordre / مالك"></form>
+            <form method="GET" class="search"><button aria-label="بحث">🔍</button><input name="search" value="<?= htmlspecialchars($search) ?>" placeholder="ابحث بالعنوان / ID / المالك"></form>
+            <a class="btn b-cancel" href="export_excel.php?search=<?= urlencode($search) ?>">⬇️ Excel</a>
+            <a class="btn b-cancel" target="_blank" href="export_pdf.php?search=<?= urlencode($search) ?>">⬇️ PDF</a>
             <?php if ($search !== ''): ?><a href="index.php" class="btn b-cancel">✖</a><?php endif; ?>
         </div>
+    </div>
+    <div class="stats">
+        <div class="stat"><span>إجمالي الملفات</span><b><?= count($rows) ?></b></div>
+        <div class="stat"><span>تمت معالجتها</span><b><?= $stats['done'] ?></b></div>
+        <div class="stat"><span>قيد المعالجة</span><b><?= $stats['progress'] ?></b></div>
+        <div class="stat"><span>جديدة</span><b><?= $stats['new'] ?></b></div>
     </div>
 
     <div class="table-wrap">
@@ -115,7 +150,7 @@ tbody td{padding:8px;border:1px solid #e9ecef;font-size:12px;vertical-align:top}
                             <?php foreach (STEPS as $type => $cfg):
                                 if ($type === 'step1_reclamation') { echo '<span class="st done">🧾 شكاية</span>'; continue; }
                                 $locked = !empty($cfg['requires']) && $cfg['requires'] !== 'step1_reclamation' && empty($docSet[$cfg['requires']]);
-                                $can = hasStepAccess($type);
+                                $can = $isLoggedIn && hasStepAccess($type);
                                 if ($locked || !$can): ?>
                                     <span class="st lock"><?= $cfg['icon'] ?> <?= htmlspecialchars($cfg['label']) ?></span>
                                 <?php else: ?>
@@ -124,7 +159,13 @@ tbody td{padding:8px;border:1px solid #e9ecef;font-size:12px;vertical-align:top}
                             endforeach; ?>
                         </div>
                     </td>
-                    <td><a class="btn b-cancel" href="modifier.php?id=<?= $r['id'] ?>">فتح الملف</a></td>
+                    <td>
+                        <?php if ($isLoggedIn): ?>
+                            <a class="btn b-cancel" href="modifier.php?id=<?= $r['id'] ?>">فتح الملف</a>
+                        <?php else: ?>
+                            —
+                        <?php endif; ?>
+                    </td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

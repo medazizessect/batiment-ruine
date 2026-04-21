@@ -7,10 +7,19 @@ $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
 if ($search !== '') {
     $stmt = $pdo->prepare("
-        SELECT * FROM batiments
-        WHERE numero_rapport LIKE :s OR lieu LIKE :s
-           OR proprietaire   LIKE :s OR observations LIKE :s
-        ORDER BY id ASC
+        SELECT b.* FROM batiments b
+        WHERE b.numero_rapport LIKE :s
+           OR b.lieu LIKE :s
+           OR b.proprietaire LIKE :s
+           OR b.observations LIKE :s
+           OR b.bureau_ordre_id LIKE :s
+           OR EXISTS (
+               SELECT 1
+               FROM documents_officiels d
+               LEFT JOIN adresses a ON a.id = d.address_id
+               WHERE d.batiment_id = b.id AND a.libelle LIKE :s
+           )
+        ORDER BY b.id ASC
     ");
     $stmt->execute([':s' => "%$search%"]);
 } else {
