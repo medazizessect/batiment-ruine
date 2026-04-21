@@ -9,7 +9,7 @@ function readArabicAddressesFromXlsx($path, $targetHeader = 'NomAr') {
     if (!$xml) return [];
 
     $targetCol = '';
-    if (preg_match_all('/r="([A-Z]+)1"[^>]*>\s*<[^>]*v>([^<]*)<\/[^>]*v>/u', $xml, $headerMatches, PREG_SET_ORDER)) {
+    if (preg_match_all('/r="([A-Z]+)1"[^>]*?>\s*<[^>]*?v>([^<]*)<\/[^>]*?v>/u', $xml, $headerMatches, PREG_SET_ORDER)) {
         foreach ($headerMatches as $hm) {
             if (strcasecmp(trim(html_entity_decode($hm[2], ENT_QUOTES | ENT_XML1, 'UTF-8')), $targetHeader) === 0) {
                 $targetCol = $hm[1];
@@ -20,7 +20,7 @@ function readArabicAddressesFromXlsx($path, $targetHeader = 'NomAr') {
     if ($targetCol === '') return [];
 
     $labels = [];
-    if (preg_match_all('/r="' . preg_quote($targetCol, '/') . '(\d+)"[^>]*>\s*<[^>]*v>([^<]*)<\/[^>]*v>/u', $xml, $valueMatches, PREG_SET_ORDER)) {
+    if (preg_match_all('/r="' . preg_quote($targetCol, '/') . '(\d+)"[^>]*?>\s*<[^>]*?v>([^<]*)<\/[^>]*?v>/u', $xml, $valueMatches, PREG_SET_ORDER)) {
         foreach ($valueMatches as $vm) {
             if ((int)$vm[1] === 1) continue;
             $nomAr = trim(html_entity_decode($vm[2], ENT_QUOTES | ENT_XML1, 'UTF-8'));
