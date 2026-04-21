@@ -15,6 +15,7 @@ $dateDoc = !empty($v['date_doc']) ? date('d/m/Y', strtotime($v['date_doc'])) : d
 .title{text-align:center;margin:8mm 0 5mm} .title h1{font-size:17pt;text-decoration:underline}
 .meta{display:flex;justify-content:space-between;margin-bottom:5mm}
 .card{border:1px solid #ddd;background:#fafafa;border-radius:6px;padding:5mm}
+.card.no-border{border:none}
 .r{margin:2mm 0}
 @media print{.noprint{display:none}}
 </style>
@@ -28,7 +29,7 @@ $dateDoc = !empty($v['date_doc']) ? date('d/m/Y', strtotime($v['date_doc'])) : d
 </div>
 <div class="title"><h1><?= htmlspecialchars($label) ?></h1></div>
 <div class="meta"><div><b>عدد:</b> <?= htmlspecialchars($numDoc ?: '...') ?></div><div><b>في:</b> <?= $dateDoc ?></div></div>
-<div class="card">
+<div class="card<?= (($v['type'] ?? '') === 'step2_pv') ? ' no-border' : '' ?>">
   <div class="r"><b>ID bureau d'ordre:</b> <?= htmlspecialchars($case['bureau_ordre_id'] ?? '') ?></div>
   <div class="r"><b>المالك:</b> <?= htmlspecialchars($case['proprietaire'] ?? '') ?></div>
   <?php if (!empty($v['cin'])): ?><div class="r"><b>CIN:</b> <?= htmlspecialchars($v['cin']) ?></div><?php endif; ?>
