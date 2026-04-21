@@ -132,7 +132,6 @@ function roleLabel($role) {
         'haifa' => 'HAIFA',
         'khaoula' => 'KHAOULA',
         'mohamed' => 'MOHAMED',
-        'user' => 'مستخدم',
     ][$role] ?? $role;
 }
 ?>

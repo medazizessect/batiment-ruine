@@ -55,8 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ((string)$toDelete['role'] !== 'admin') {
                     $pdo->prepare("DELETE FROM membres WHERE id=?")->execute([$id]);
                 } else {
-                    $admins = (int)$pdo->query("SELECT COUNT(*) FROM membres WHERE role='admin'")->fetchColumn();
-                    if ($admins > 1) $pdo->prepare("DELETE FROM membres WHERE id=?")->execute([$id]);
+                    $remainingAdminsStmt = $pdo->prepare("SELECT COUNT(*) FROM membres WHERE role='admin' AND id<>?");
+                    $remainingAdminsStmt->execute([$id]);
+                    $remainingAdmins = (int)$remainingAdminsStmt->fetchColumn();
+                    if ($remainingAdmins >= 1) $pdo->prepare("DELETE FROM membres WHERE id=?")->execute([$id]);
                 }
             }
         }
