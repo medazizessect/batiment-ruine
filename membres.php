@@ -3,28 +3,68 @@ require 'config.php';
 requireRole('admin');
 require 'db.php';
 
+$stepLabels = [
+    'step1_reclamation' => '1',
+    'step2_pv' => '2',
+    'step3_expert_request' => '3',
+    'step4_expert_report' => '4',
+    'step5_decision' => '5',
+];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+    $stepPermissionsInput = array_filter($_POST['step_permissions'] ?? [], 'is_string');
+    $selectedSteps = array_values(array_unique(array_intersect(stepTypes(), $stepPermissionsInput)));
+    $stepPermissionsJson = json_encode($selectedSteps, JSON_UNESCAPED_UNICODE);
+
     if ($action === 'add_user') {
-        $pdo->prepare("INSERT INTO membres (nom, username, role, password, actif) VALUES (?,?,?,?,1)")
+        $role = !empty($_POST['is_admin']) ? 'admin' : 'haifa';
+        $pdo->prepare("INSERT INTO membres (nom, username, role, step_permissions, password, actif) VALUES (?,?,?,?,?,1)")
             ->execute([
                 trim($_POST['nom'] ?? ''),
                 trim($_POST['username'] ?? ''),
-                in_array($_POST['role'] ?? '', ['admin','haifa','khaoula','mohamed'], true) ? $_POST['role'] : 'haifa',
+                $role,
+                $stepPermissionsJson,
                 password_hash(trim($_POST['password'] ?? ''), PASSWORD_DEFAULT),
             ]);
     } elseif ($action === 'toggle_user') {
         $pdo->prepare("UPDATE membres SET actif = 1 - actif WHERE id=?")->execute([intval($_POST['id'] ?? 0)]);
     } elseif ($action === 'update_user') {
-        $sql = "UPDATE membres SET nom=?, role=?";
-        $params = [trim($_POST['nom'] ?? ''), $_POST['role'] ?? 'haifa'];
+        $id = intval($_POST['id'] ?? 0);
+        $currentRoleStmt = $pdo->prepare("SELECT role FROM membres WHERE id=?");
+        $currentRoleStmt->execute([$id]);
+        $currentRole = (string)$currentRoleStmt->fetchColumn();
+        $newRole = !empty($_POST['is_admin']) ? 'admin' : ($currentRole === 'admin' ? 'haifa' : $currentRole);
+
+        $sql = "UPDATE membres SET nom=?, role=?, step_permissions=?";
+        $params = [trim($_POST['nom'] ?? ''), $newRole, $stepPermissionsJson];
         if (trim($_POST['password'] ?? '') !== '') {
             $sql .= ", password=?";
             $params[] = password_hash(trim($_POST['password']), PASSWORD_DEFAULT);
         }
         $sql .= " WHERE id=?";
-        $params[] = intval($_POST['id'] ?? 0);
+        $params[] = $id;
         $pdo->prepare($sql)->execute($params);
+    } elseif ($action === 'delete_user') {
+        $id = intval($_POST['id'] ?? 0);
+        $uStmt = $pdo->prepare("SELECT username, role FROM membres WHERE id=?");
+        $uStmt->execute([$id]);
+        $toDelete = $uStmt->fetch(PDO::FETCH_ASSOC);
+        if ($toDelete) {
+            $currentUsername = $_SESSION['user']['username'] ?? '';
+            if ((string)$toDelete['username'] !== $currentUsername) {
+                $canDelete = false;
+                if ((string)$toDelete['role'] !== 'admin') {
+                    $canDelete = true;
+                } else {
+                    $remainingAdminsStmt = $pdo->prepare("SELECT COUNT(*) FROM membres WHERE role='admin' AND id<>?");
+                    $remainingAdminsStmt->execute([$id]);
+                    $remainingAdmins = (int)$remainingAdminsStmt->fetchColumn();
+                    $canDelete = ($remainingAdmins >= 1);
+                }
+                if ($canDelete) $pdo->prepare("DELETE FROM membres WHERE id=?")->execute([$id]);
+            }
+        }
     } elseif ($action === 'add_address') {
         $lib = trim($_POST['libelle'] ?? '');
         if ($lib !== '') $pdo->prepare("INSERT IGNORE INTO adresses (libelle) VALUES (?)")->execute([$lib]);
@@ -62,19 +102,23 @@ input,select{padding:7px 9px;border:1px solid #ddd;border-radius:7px;width:100%;
 <div class="card">
     <h3>الحسابات والصلاحيات</h3>
     <table>
-        <tr><th>الاسم</th><th>Username</th><th>الدور</th><th>كلمة مرور جديدة</th><th>الحالة</th><th>إجراءات</th></tr>
+        <tr><th>الاسم</th><th>Username</th><th>صلاحيات المراحل</th><th>كلمة مرور جديدة</th><th>الحالة</th><th>إجراءات</th></tr>
         <?php foreach($users as $u): ?>
+        <?php $uPerms = normalizeStepPermissions($u['step_permissions'] ?? null, $u['role'] ?? ''); ?>
         <tr>
             <form method="POST">
                 <input type="hidden" name="action" value="update_user">
                 <input type="hidden" name="id" value="<?= $u['id'] ?>">
                 <td><input name="nom" value="<?= htmlspecialchars($u['nom']) ?>"></td>
                 <td><?= htmlspecialchars($u['username']) ?></td>
-                <td><select name="role">
-                    <?php foreach(['admin','haifa','khaoula','mohamed'] as $r): ?>
-                        <option value="<?= $r ?>" <?= $u['role'] === $r ? 'selected' : '' ?>><?= roleLabel($r) ?></option>
-                    <?php endforeach; ?>
-                </select></td>
+                <td>
+                    <label style="display:block;margin-bottom:6px"><input type="checkbox" name="is_admin" value="1" <?= ($u['role'] ?? '') === 'admin' ? 'checked' : '' ?>> مدير</label>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        <?php foreach($stepLabels as $stepKey => $stepLabel): ?>
+                            <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" name="step_permissions[]" value="<?= $stepKey ?>" <?= !empty($uPerms[$stepKey]) ? 'checked' : '' ?>> <?= $stepLabel ?></label>
+                        <?php endforeach; ?>
+                    </div>
+                </td>
                 <td><input name="password" placeholder="اتركه فارغًا بدون تغيير"></td>
                 <td><?= $u['actif'] ? 'نشط' : 'معطل' ?></td>
                 <td style="display:flex;gap:6px">
@@ -85,6 +129,11 @@ input,select{padding:7px 9px;border:1px solid #ddd;border-radius:7px;width:100%;
                 <input type="hidden" name="id" value="<?= $u['id'] ?>">
                 <button class="btn b2" type="submit"><?= $u['actif'] ? '🔕' : '🔔' ?></button>
             </form>
+            <form method="POST" onsubmit="return confirm('حذف المستخدم؟')">
+                <input type="hidden" name="action" value="delete_user">
+                <input type="hidden" name="id" value="<?= $u['id'] ?>">
+                <button class="btn b3" type="submit">🗑️</button>
+            </form>
                 </td>
         </tr>
         <?php endforeach; ?>
@@ -93,7 +142,14 @@ input,select{padding:7px 9px;border:1px solid #ddd;border-radius:7px;width:100%;
                 <input type="hidden" name="action" value="add_user">
                 <td><input name="nom" required></td>
                 <td><input name="username" required></td>
-                <td><select name="role"><option value="haifa">HAIFA</option><option value="khaoula">KHAOULA</option><option value="mohamed">MOHAMED</option><option value="admin">مدير</option></select></td>
+                <td>
+                    <label style="display:block;margin-bottom:6px"><input type="checkbox" name="is_admin" value="1"> مدير</label>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        <?php foreach($stepLabels as $stepKey => $stepLabel): ?>
+                            <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" name="step_permissions[]" value="<?= $stepKey ?>"> <?= $stepLabel ?></label>
+                        <?php endforeach; ?>
+                    </div>
+                </td>
                 <td><input name="password" required></td>
                 <td>جديد</td>
                 <td><button class="btn b1">➕</button></td>

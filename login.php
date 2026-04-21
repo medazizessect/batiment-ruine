@@ -16,7 +16,11 @@ try {
     $pdoTmp->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $hasTable = $pdoTmp->query("SHOW TABLES LIKE 'membres'")->fetchColumn();
     if ($hasTable) {
-        $rows = $pdoTmp->query("SELECT username, nom, role, password FROM membres WHERE actif=1")->fetchAll(PDO::FETCH_ASSOC);
+        $hasStepPermissions = $pdoTmp->query("SHOW COLUMNS FROM membres LIKE 'step_permissions'")->fetchColumn();
+        $sql = $hasStepPermissions
+            ? "SELECT username, nom, role, password, step_permissions FROM membres WHERE actif=1"
+            : "SELECT username, nom, role, password, NULL AS step_permissions FROM membres WHERE actif=1";
+        $rows = $pdoTmp->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         if ($rows) {
             $users = [];
             foreach ($rows as $r) {
@@ -24,6 +28,7 @@ try {
                     'password' => $r['password'],
                     'role' => $r['role'],
                     'nom' => $r['nom'],
+                    'step_permissions' => normalizeStepPermissions($r['step_permissions'] ?? null, $r['role'] ?? ''),
                 ];
             }
         }
@@ -53,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'username' => $username,
             'nom'      => $users[$username]['nom'],
             'role'     => $users[$username]['role'],
+            'step_permissions' => $users[$username]['step_permissions'] ?? normalizeStepPermissions(null, $users[$username]['role'] ?? ''),
         ];
         header("Location: index.php");
         exit;
