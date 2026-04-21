@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hasStepAccess('step1_reclamation'))
     <?php if (!empty($_GET['saved'])): ?><div class="alert alert-success">✅ تم التحديث</div><?php endif; ?>
     <?php if ($errors): ?><div class="error-box"><ul><?php foreach ($errors as $e) echo "<li>".htmlspecialchars($e)."</li>"; ?></ul></div><?php endif; ?>
 
-    <div class="sec sec-docs">📜 مسار الإجراءات (5 مراحل)</div>
+    <div class="sec sec-docs">📜 مسار الإجراءات</div>
     <div class="fg full">
         <div class="doc-stepper">
         <?php foreach (STEPS as $dtype => $cfg):
