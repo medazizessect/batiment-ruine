@@ -123,15 +123,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if ($error): ?><div class="error">❌ <?= htmlspecialchars($error) ?></div><?php endif; ?>
 
     <form method="POST">
-        <input type="hidden" name="username" id="username-field" value="<?= htmlspecialchars($_POST['username'] ?? $defaultUsername) ?>">
-
-        <div class="users">
-            <?php foreach ($users as $uname => $info): ?>
-                <button type="button" class="u<?= (($uname === ($_POST['username'] ?? $defaultUsername)) ? ' active' : '') ?>" data-u="<?= htmlspecialchars($uname) ?>">
-                    <span><?= htmlspecialchars($info['nom']) ?></span>
-                    <small><?= roleLabel($info['role']) ?></small>
-                </button>
-            <?php endforeach; ?>
+        <div class="fg">
+            <label>اسم المستخدم</label>
+            <input type="text" name="username" autocomplete="username" required value="<?= htmlspecialchars($_POST['username'] ?? $defaultUsername) ?>">
         </div>
 
         <div class="fg">
@@ -142,14 +136,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
 </div>
 
-<script>
-document.querySelectorAll('.u').forEach(function(btn){
-    btn.addEventListener('click', function(){
-        document.querySelectorAll('.u').forEach(function(b){ b.classList.remove('active'); });
-        btn.classList.add('active');
-        document.getElementById('username-field').value = btn.getAttribute('data-u');
-    });
-});
-</script>
 </body>
 </html>

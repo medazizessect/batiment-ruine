@@ -22,6 +22,16 @@ try {
             $pdo->exec("ALTER TABLE membres ADD COLUMN step_permissions TEXT NULL AFTER role");
         }
     }
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS commission_members (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nom VARCHAR(120) NOT NULL,
+            titre VARCHAR(120) NULL,
+            ordre INT NOT NULL DEFAULT 0,
+            actif TINYINT(1) NOT NULL DEFAULT 1
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
+    ");
 } catch (PDOException $e) {
     die("
     <div style='font-family:Arial;padding:30px;text-align:center'>

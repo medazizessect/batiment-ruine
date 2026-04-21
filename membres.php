@@ -70,6 +70,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($lib !== '') $pdo->prepare("INSERT IGNORE INTO adresses (libelle) VALUES (?)")->execute([$lib]);
     } elseif ($action === 'delete_address') {
         $pdo->prepare("DELETE FROM adresses WHERE id=?")->execute([intval($_POST['id'] ?? 0)]);
+    } elseif ($action === 'add_commission_member') {
+        $nom = trim($_POST['nom'] ?? '');
+        if ($nom !== '') {
+            $pdo->prepare("INSERT INTO commission_members (nom, titre, ordre, actif) VALUES (?,?,?,1)")
+                ->execute([
+                    $nom,
+                    trim($_POST['titre'] ?? '') ?: null,
+                    max(0, (int)($_POST['ordre'] ?? 0)),
+                ]);
+        }
+    } elseif ($action === 'delete_commission_member') {
+        $pdo->prepare("DELETE FROM commission_members WHERE id=?")->execute([intval($_POST['id'] ?? 0)]);
     }
     header("Location: membres.php?ok=1");
     exit;
@@ -77,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $users = $pdo->query("SELECT * FROM membres ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
 $addresses = $pdo->query("SELECT * FROM adresses ORDER BY libelle ASC LIMIT 1000")->fetchAll(PDO::FETCH_ASSOC);
+$commissionMembers = $pdo->query("SELECT * FROM commission_members ORDER BY ordre ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!doctype html>
 <html lang="ar" dir="rtl">
@@ -156,6 +169,36 @@ input,select{padding:7px 9px;border:1px solid #ddd;border-radius:7px;width:100%;
             </form>
         </tr>
     </table>
+</div>
+
+<div class="card">
+    <h3>اللجنة — أعضاء اللجنة</h3>
+    <form method="POST" style="display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:8px;margin-bottom:10px">
+        <input type="hidden" name="action" value="add_commission_member">
+        <input name="nom" placeholder="الاسم" required>
+        <input name="titre" placeholder="الصفة / العنوان">
+        <input name="ordre" type="number" min="0" value="0" placeholder="الترتيب">
+        <button class="btn b1" type="submit">➕</button>
+    </form>
+    <div style="max-height:320px;overflow:auto">
+        <table>
+            <tr><th>#</th><th>الاسم</th><th>الصفة</th><th></th></tr>
+            <?php foreach($commissionMembers as $cm): ?>
+                <tr>
+                    <td><?= (int)$cm['ordre'] ?></td>
+                    <td><?= htmlspecialchars($cm['nom']) ?></td>
+                    <td><?= htmlspecialchars((string)($cm['titre'] ?? '')) ?></td>
+                    <td>
+                        <form method="POST" onsubmit="return confirm('حذف عضو اللجنة؟')">
+                            <input type="hidden" name="action" value="delete_commission_member">
+                            <input type="hidden" name="id" value="<?= (int)$cm['id'] ?>">
+                            <button class="btn b3" type="submit">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+    </div>
 </div>
 
 <div class="card">
