@@ -139,11 +139,15 @@ try {
             actif TINYINT(1) DEFAULT 1
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
     ");
+    $adminPassword = getenv('ADMIN_PASSWORD') ?: 'admin1912';
+    $haifaPassword = getenv('HAIFA_PASSWORD') ?: 'haifa123';
+    $khaoulaPassword = getenv('KHAOULA_PASSWORD') ?: 'khaoula123';
+    $mohamedPassword = getenv('MOHAMED_PASSWORD') ?: 'mohamed123';
     $insUser = $pdo->prepare("INSERT INTO membres (nom, username, role, step_permissions, password) VALUES (?,?,?,?,?)");
-    $insUser->execute(['المدير', 'admin', 'admin', json_encode(['step1_reclamation','step2_pv','step3_expert_request','step4_expert_report','step5_decision'], JSON_UNESCAPED_UNICODE), password_hash('admin1912', PASSWORD_DEFAULT)]);
-    $insUser->execute(['HAIFA', 'haifa', 'haifa', json_encode(['step1_reclamation','step2_pv'], JSON_UNESCAPED_UNICODE), password_hash('haifa123', PASSWORD_DEFAULT)]);
-    $insUser->execute(['KHAOULA', 'khaoula', 'khaoula', json_encode(['step3_expert_request','step4_expert_report'], JSON_UNESCAPED_UNICODE), password_hash('khaoula123', PASSWORD_DEFAULT)]);
-    $insUser->execute(['MOHAMED', 'mohamed', 'mohamed', json_encode(['step5_decision'], JSON_UNESCAPED_UNICODE), password_hash('mohamed123', PASSWORD_DEFAULT)]);
+    $insUser->execute(['المدير', 'admin', 'admin', json_encode(['step1_reclamation','step2_pv','step3_expert_request','step4_expert_report','step5_decision'], JSON_UNESCAPED_UNICODE), password_hash($adminPassword, PASSWORD_DEFAULT)]);
+    $insUser->execute(['HAIFA', 'haifa', 'haifa', json_encode(['step1_reclamation','step2_pv'], JSON_UNESCAPED_UNICODE), password_hash($haifaPassword, PASSWORD_DEFAULT)]);
+    $insUser->execute(['KHAOULA', 'khaoula', 'khaoula', json_encode(['step3_expert_request','step4_expert_report'], JSON_UNESCAPED_UNICODE), password_hash($khaoulaPassword, PASSWORD_DEFAULT)]);
+    $insUser->execute(['MOHAMED', 'mohamed', 'mohamed', json_encode(['step5_decision'], JSON_UNESCAPED_UNICODE), password_hash($mohamedPassword, PASSWORD_DEFAULT)]);
 
     $pdo->exec("
         CREATE TABLE modeles_documents (

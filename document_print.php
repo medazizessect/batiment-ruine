@@ -2,6 +2,8 @@
 $numDoc = $v['numero_doc'] ?? '';
 $dateDoc = !empty($v['date_doc']) ? date('d/m/Y', strtotime($v['date_doc'])) : date('d/m/Y');
 $commissionMembers = trim((string)($v['commission_members'] ?? $case['commission'] ?? ''));
+$ownerLabel = trim((string)($v['owner_name'] ?? ''));
+if ($ownerLabel === '') $ownerLabel = trim((string)($case['proprietaire'] ?? ''));
 ?>
 <!doctype html>
 <html lang="ar" dir="rtl">
@@ -31,7 +33,7 @@ $commissionMembers = trim((string)($v['commission_members'] ?? $case['commission
 <div class="meta"><div><b>عدد:</b> <?= htmlspecialchars($numDoc ?: '...') ?></div><div><b>في:</b> <?= $dateDoc ?></div></div>
 <div class="card">
   <div class="r"><b>ID bureau d'ordre:</b> <?= htmlspecialchars($case['bureau_ordre_id'] ?? '') ?></div>
-  <div class="r"><b>المالك:</b> <?= htmlspecialchars($v['owner_name'] ?? $case['proprietaire'] ?? '') ?></div>
+  <div class="r"><b>المالك:</b> <?= htmlspecialchars($ownerLabel) ?></div>
   <?php if (!empty($addressLabel)): ?><div class="r"><b>المكان:</b> <?= htmlspecialchars($addressLabel) ?></div><?php endif; ?>
   <?php if (!empty($v['cin'])): ?><div class="r"><b>CIN:</b> <?= htmlspecialchars($v['cin']) ?></div><?php endif; ?>
   <?php if ($commissionMembers !== ''): ?><div class="r"><b>أعضاء اللجنة:</b> <?= htmlspecialchars($commissionMembers) ?></div><?php endif; ?>

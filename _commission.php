@@ -22,10 +22,11 @@ if (trim($currentCommission) !== '') {
     </div>
     <div class="membres-predefs" id="membres-predefs">
         <?php foreach ($membresActifs as $m): ?>
+            <?php $memberDisplay = trim(($m['titre'] ?? '') . ' ' . ($m['nom'] ?? '')); ?>
             <button type="button" class="predef-btn"
-                    data-nom="<?= htmlspecialchars(trim(($m['titre'] ?? '') . ' ' . ($m['nom'] ?? '')),ENT_QUOTES) ?>"
+                    data-nom="<?= htmlspecialchars($memberDisplay, ENT_QUOTES) ?>"
                     onclick="toggleMembre(this)">
-                <?= htmlspecialchars(trim(($m['titre'] ?? '') . ' ' . ($m['nom'] ?? '')) ?: ($m['nom'] ?? '')) ?>
+                <?= htmlspecialchars($memberDisplay) ?>
             </button>
         <?php endforeach; ?>
     </div>
