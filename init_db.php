@@ -17,6 +17,7 @@ try {
     $pdo->exec("DROP TABLE IF EXISTS documents_officiels");
     $pdo->exec("DROP TABLE IF EXISTS batiments");
     $pdo->exec("DROP TABLE IF EXISTS adresses");
+    $pdo->exec("DROP TABLE IF EXISTS commission_members");
     $pdo->exec("DROP TABLE IF EXISTS pv_states");
     $pdo->exec("DROP TABLE IF EXISTS membres");
     $pdo->exec("DROP TABLE IF EXISTS modeles_documents");
@@ -57,6 +58,16 @@ try {
     ");
 
     $pdo->exec("
+        CREATE TABLE commission_members (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            titre VARCHAR(120) NOT NULL,
+            nom VARCHAR(120) NOT NULL,
+            ordre INT NOT NULL DEFAULT 0,
+            actif TINYINT(1) DEFAULT 1
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
+    ");
+
+    $pdo->exec("
         CREATE TABLE pv_states (
             id INT AUTO_INCREMENT PRIMARY KEY,
             libelle VARCHAR(120) NOT NULL UNIQUE
@@ -77,6 +88,7 @@ try {
             exploite_by ENUM('oui','non') NULL,
             occupied_by VARCHAR(255) NULL,
             confirmation_degree VARCHAR(80) NULL,
+            commission_members TEXT NULL,
             address_id INT NULL,
             pv_state_id INT NULL,
             forward_to_ministry TINYINT(1) DEFAULT 0,
@@ -128,7 +140,7 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
     ");
     $insUser = $pdo->prepare("INSERT INTO membres (nom, username, role, step_permissions, password) VALUES (?,?,?,?,?)");
-    $insUser->execute(['المدير', 'admin', 'admin', json_encode(['step1_reclamation','step2_pv','step3_expert_request','step4_expert_report','step5_decision'], JSON_UNESCAPED_UNICODE), password_hash('admin123', PASSWORD_DEFAULT)]);
+    $insUser->execute(['المدير', 'admin', 'admin', json_encode(['step1_reclamation','step2_pv','step3_expert_request','step4_expert_report','step5_decision'], JSON_UNESCAPED_UNICODE), password_hash('admin1912', PASSWORD_DEFAULT)]);
     $insUser->execute(['HAIFA', 'haifa', 'haifa', json_encode(['step1_reclamation','step2_pv'], JSON_UNESCAPED_UNICODE), password_hash('haifa123', PASSWORD_DEFAULT)]);
     $insUser->execute(['KHAOULA', 'khaoula', 'khaoula', json_encode(['step3_expert_request','step4_expert_report'], JSON_UNESCAPED_UNICODE), password_hash('khaoula123', PASSWORD_DEFAULT)]);
     $insUser->execute(['MOHAMED', 'mohamed', 'mohamed', json_encode(['step5_decision'], JSON_UNESCAPED_UNICODE), password_hash('mohamed123', PASSWORD_DEFAULT)]);
@@ -158,6 +170,11 @@ try {
     $states = ['مسودة', 'نهائي', 'قيد المعالجة'];
     $insState = $pdo->prepare("INSERT INTO pv_states (libelle) VALUES (?)");
     foreach ($states as $st) $insState->execute([$st]);
+
+    $insCommission = $pdo->prepare("INSERT INTO commission_members (titre, nom, ordre, actif) VALUES (?,?,?,1)");
+    $insCommission->execute(['رئيس اللجنة', 'ممثل البلدية', 1]);
+    $insCommission->execute(['عضو', 'ممثل الحماية المدنية', 2]);
+    $insCommission->execute(['عضو', 'ممثل الشرطة البلدية', 3]);
 
     $addresses = readArabicAddressesFromXlsx(__DIR__ . '/VOIE_Nom_Rues_Arabe_2026.xlsx');
     $insAdr = $pdo->prepare("INSERT IGNORE INTO adresses (libelle) VALUES (?)");
