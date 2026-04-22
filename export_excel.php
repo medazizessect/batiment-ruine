@@ -13,12 +13,13 @@ if ($search !== '') {
         FROM batiments b
         LEFT JOIN documents_officiels d ON d.batiment_id = b.id AND d.type='step2_pv'
         LEFT JOIN adresses a ON a.id = d.address_id
-        WHERE b.numero_rapport LIKE :s OR b.lieu LIKE :s
-           OR b.proprietaire LIKE :s OR b.observations LIKE :s
-           OR b.bureau_ordre_id LIKE :s OR a.libelle LIKE :s
+        WHERE b.numero_rapport LIKE :s1 OR b.lieu LIKE :s2
+           OR b.proprietaire LIKE :s3 OR b.observations LIKE :s4
+           OR b.bureau_ordre_id LIKE :s5 OR a.libelle LIKE :s6
         ORDER BY b.id ASC
     ");
-    $stmt->execute([':s' => "%$search%"]);
+    $like = "%$search%";
+    $stmt->execute([':s1' => $like, ':s2' => $like, ':s3' => $like, ':s4' => $like, ':s5' => $like, ':s6' => $like]);
 } else {
     $stmt = $pdo->query("SELECT * FROM batiments ORDER BY id ASC");
 }

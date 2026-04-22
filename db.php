@@ -27,7 +27,8 @@ try {
         $adminRow = $adminPwdStmt->fetch(PDO::FETCH_ASSOC);
         if ($adminRow) {
             $stored = (string)($adminRow['password'] ?? '');
-            $needsUpdate = ($stored === 'admin123' || password_verify('admin123', $stored));
+            $isHashed = !empty(password_get_info($stored)['algo']);
+            $needsUpdate = $isHashed ? password_verify('admin123', $stored) : hash_equals($stored, 'admin123');
             if ($needsUpdate) {
                 $pdo->prepare("UPDATE membres SET password=? WHERE id=?")
                     ->execute([password_hash('admin1912', PASSWORD_DEFAULT), (int)$adminRow['id']]);

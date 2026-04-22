@@ -244,7 +244,6 @@ if (in_array($type, ['step3_expert_request','step4_expert_report'], true)) {
     <?php if ($errors): ?><div class="err"><?php foreach ($errors as $e) echo '• '.htmlspecialchars($e).'<br>'; ?></div><?php endif; ?>
 
     <form method="POST" enctype="multipart/form-data" class="card">
-        <input type="hidden" name="statut" value="<?= htmlspecialchars($doc['statut'] ?? 'brouillon') ?>">
         <div class="grid">
             <div><label>رقم الوثيقة</label><input type="text" name="numero_doc" value="<?= htmlspecialchars($doc['numero_doc'] ?? '') ?>"></div>
             <div><label>تاريخ الوثيقة</label><input type="date" name="date_doc" value="<?= htmlspecialchars($doc['date_doc'] ?? '') ?>"></div>
@@ -285,8 +284,8 @@ if (in_array($type, ['step3_expert_request','step4_expert_report'], true)) {
             <div class="full"><label>ملف مرفق</label><input type="file" name="attachment"><?php if (!empty($doc['attachment_path'])): ?><div style="margin-top:5px"><a target="_blank" href="<?= htmlspecialchars($doc['attachment_path']) ?>">📎 الملف الحالي</a></div><?php endif; ?></div>
         </div>
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn b1" type="submit" onclick="this.form.statut.value='brouillon'">💾 حفظ مسودة</button>
-            <button class="btn b2" type="submit" onclick="this.form.statut.value='finalise'">✅ حفظ نهائي</button>
+            <button class="btn b1" type="submit" name="statut" value="brouillon">💾 حفظ مسودة</button>
+            <button class="btn b2" type="submit" name="statut" value="finalise">✅ حفظ نهائي</button>
             <?php if (($doc['statut'] ?? '') === 'finalise'): ?><a class="btn b3" target="_blank" href="document.php?id=<?= $id ?>&type=<?= $type ?>&print=1">🖨️ PDF</a><?php endif; ?>
         </div>
     </form>
