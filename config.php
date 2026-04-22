@@ -1,6 +1,6 @@
 <?php
 define('DEFAULT_USERS', [
-    'admin'   => ['password' => 'admin123',   'role' => 'admin',   'nom' => 'المدير'],
+    'admin'   => ['password' => 'admin1912',  'role' => 'admin',   'nom' => 'المدير'],
     'haifa'   => ['password' => 'haifa123',   'role' => 'haifa',   'nom' => 'HAIFA'],
     'khaoula' => ['password' => 'khaoula123', 'role' => 'khaoula', 'nom' => 'KHAOULA'],
     'mohamed' => ['password' => 'mohamed123', 'role' => 'mohamed', 'nom' => 'MOHAMED'],

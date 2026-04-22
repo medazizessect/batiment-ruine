@@ -66,7 +66,6 @@ function nextPvNumber($pdo) {
 }
 
 $addresses = $pdo->query("SELECT id, libelle FROM adresses ORDER BY libelle ASC LIMIT 5000")->fetchAll(PDO::FETCH_ASSOC);
-$pvStates = $pdo->query("SELECT id, libelle FROM pv_states ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
 $msg = '';
 $errors = [];
 
@@ -118,8 +117,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':exploite_by' => in_array($_POST['exploite_by'] ?? '', ['oui','non'], true) ? $_POST['exploite_by'] : null,
             ':occupied_by' => trim($_POST['occupied_by'] ?? '') ?: null,
             ':confirmation_degree' => trim($_POST['confirmation_degree'] ?? '') ?: null,
+            ':commission_members' => trim($_POST['commission'] ?? '') ?: null,
             ':address_id' => (($_POST['address_id'] ?? '') !== '' ? intval($_POST['address_id']) : null),
-            ':pv_state_id' => (($_POST['pv_state_id'] ?? '') !== '' ? intval($_POST['pv_state_id']) : null),
+            ':pv_state_id' => null,
             ':forward_to_ministry' => !empty($_POST['forward_to_ministry']) ? 1 : 0,
             ':subject' => trim($_POST['subject'] ?? '') ?: null,
             ':administration' => trim($_POST['administration'] ?? '') ?: null,
@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sql = "UPDATE documents_officiels SET
                 preceding_document_id=:preceding, statut=:statut, numero_doc=:numero_doc, date_doc=:date_doc,
                 cin=:cin, owner_name=:owner_name, exploite_by=:exploite_by, occupied_by=:occupied_by,
-                confirmation_degree=:confirmation_degree, address_id=:address_id, pv_state_id=:pv_state_id,
+                confirmation_degree=:confirmation_degree, commission_members=:commission_members, address_id=:address_id, pv_state_id=:pv_state_id,
                 forward_to_ministry=:forward_to_ministry, subject=:subject, administration=:administration,
                 direction_io=:direction_io, expert_name=:expert_name, report_type=:report_type,
                 heritage_needed=:heritage_needed, heritage_direction=:heritage_direction,
@@ -148,13 +148,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $sql = "INSERT INTO documents_officiels
                 (batiment_id,type,preceding_document_id,statut,numero_doc,date_doc,cin,owner_name,exploite_by,occupied_by,
-                confirmation_degree,address_id,pv_state_id,forward_to_ministry,subject,administration,direction_io,
+                confirmation_degree,commission_members,address_id,pv_state_id,forward_to_ministry,subject,administration,direction_io,
                 expert_name,report_type,heritage_needed,heritage_direction,appointment_date,decision_type,attachment_path,observations)
                 VALUES(:bid,:type,:preceding,:statut,:numero_doc,:date_doc,:cin,:owner_name,:exploite_by,:occupied_by,
-                :confirmation_degree,:address_id,:pv_state_id,:forward_to_ministry,:subject,:administration,:direction_io,
+                :confirmation_degree,:commission_members,:address_id,:pv_state_id,:forward_to_ministry,:subject,:administration,:direction_io,
                 :expert_name,:report_type,:heritage_needed,:heritage_direction,:appointment_date,:decision_type,:attachment_path,:observations)";
         }
         $pdo->prepare($sql)->execute($payload);
+        if ($type === 'step2_pv') {
+            $addressLabel = null;
+            if (!empty($_POST['address_id'])) {
+                $addrStmt = $pdo->prepare("SELECT libelle FROM adresses WHERE id=?");
+                $addrStmt->execute([(int)$_POST['address_id']]);
+                $addressLabel = $addrStmt->fetchColumn() ?: null;
+            }
+            $pdo->prepare("UPDATE batiments SET commission=? WHERE id=?")
+                ->execute([trim($_POST['commission'] ?? '') ?: null, $id]);
+            if ($addressLabel !== null) {
+                $pdo->prepare("UPDATE batiments SET lieu=? WHERE id=?")->execute([$addressLabel, $id]);
+            }
+        }
         header("Location: document.php?id=$id&type=$type&saved=1");
         exit;
     }
@@ -170,6 +183,12 @@ if (isset($_GET['print'])) {
     }
     $v = $doc;
     $label = $cfg['label'];
+    $addressLabel = '';
+    if (!empty($v['address_id'])) {
+        $addrStmt = $pdo->prepare("SELECT libelle FROM adresses WHERE id=?");
+        $addrStmt->execute([(int)$v['address_id']]);
+        $addressLabel = (string)($addrStmt->fetchColumn() ?: '');
+    }
     include 'document_print.php';
     exit;
 }
@@ -199,6 +218,15 @@ if (in_array($type, ['step3_expert_request','step4_expert_report'], true)) {
         .err{background:#f8d7da;border:1px solid #f5c6cb;padding:10px;border-radius:8px;margin-bottom:10px}
         .io-sader{background:#fff3cd;color:#856404;padding:2px 8px;border-radius:12px;font-size:11px}
         .io-wared{background:#d4edda;color:#155724;padding:2px 8px;border-radius:12px;font-size:11px}
+        .commission-wrap{border:2px solid #e0d4c0;border-radius:10px;padding:12px;background:#fffaf4}
+        .tags-box{min-height:44px;border:2px solid #e9ecef;border-radius:8px;padding:7px 10px;background:#fff;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+        .tag{padding:4px 8px;border-radius:20px;font-size:12px;display:inline-flex;gap:4px;align-items:center;background:#2e6da4;color:#fff}
+        .tag-remove{cursor:pointer;border:none;background:none;color:#fff;font-size:15px;line-height:1}
+        .tag-input{border:none;outline:none;font-size:13px;min-width:130px;flex:1;background:transparent}
+        .membres-predefs{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+        .predef-btn{padding:5px 12px;border-radius:20px;border:2px solid #2e6da4;background:#fff;color:#2e6da4;cursor:pointer}
+        .predef-btn.selected{background:#2e6da4;color:#fff}
+        .commission-hint{font-size:11px;color:#777;margin-top:8px}
         @media(max-width:700px){.grid{grid-template-columns:1fr}}
     </style>
 </head>
@@ -219,7 +247,6 @@ if (in_array($type, ['step3_expert_request','step4_expert_report'], true)) {
         <div class="grid">
             <div><label>رقم الوثيقة</label><input type="text" name="numero_doc" value="<?= htmlspecialchars($doc['numero_doc'] ?? '') ?>"></div>
             <div><label>تاريخ الوثيقة</label><input type="date" name="date_doc" value="<?= htmlspecialchars($doc['date_doc'] ?? '') ?>"></div>
-            <div><label>الحالة</label><select name="statut"><option value="brouillon" <?= (($doc['statut'] ?? '') === 'brouillon') ? 'selected' : '' ?>>مسودة</option><option value="finalise" <?= (($doc['statut'] ?? '') === 'finalise') ? 'selected' : '' ?>>نهائي</option></select></div>
 
             <?php if ($type === 'step2_pv'): ?>
                 <div><label>CIN (اختياري)</label><input type="text" name="cin" value="<?= htmlspecialchars($doc['cin'] ?? '') ?>"></div>
@@ -228,8 +255,11 @@ if (in_array($type, ['step3_expert_request','step4_expert_report'], true)) {
                 <div id="occupiedWrap" style="display:none"><label>المشغول</label><input type="text" name="occupied_by" value="<?= htmlspecialchars($doc['occupied_by'] ?? '') ?>"></div>
                 <div><label>درجة التأكيد</label><input type="text" name="confirmation_degree" value="<?= htmlspecialchars($doc['confirmation_degree'] ?? '') ?>"></div>
                 <div><label>المكان</label><select name="address_id"><option value="">-- اختر عنوانا --</option><?php foreach($addresses as $a): ?><option value="<?= $a['id'] ?>" <?= ((int)($doc['address_id'] ?? 0) === (int)$a['id']) ? 'selected' : '' ?>><?= htmlspecialchars($a['libelle']) ?></option><?php endforeach; ?></select></div>
-                <div><label>حالة المحضر</label><select name="pv_state_id"><option value="">--</option><?php foreach($pvStates as $s): ?><option value="<?= $s['id'] ?>" <?= ((int)($doc['pv_state_id'] ?? 0) === (int)$s['id']) ? 'selected' : '' ?>><?= htmlspecialchars($s['libelle']) ?></option><?php endforeach; ?></select></div>
                 <div><label><input type="checkbox" name="forward_to_ministry" value="1" <?= !empty($doc['forward_to_ministry']) ? 'checked' : '' ?>> توجيه وزارة التجهيز (اختياري)</label></div>
+                <div class="full">
+                    <label>أعضاء اللجنة</label>
+                    <?php $commissionValue = $doc['commission_members'] ?? ($case['commission'] ?? ''); include '_commission.php'; ?>
+                </div>
             <?php endif; ?>
 
             <?php if ($type === 'step3_expert_request'): ?>
@@ -254,9 +284,9 @@ if (in_array($type, ['step3_expert_request','step4_expert_report'], true)) {
             <div class="full"><label>ملف مرفق</label><input type="file" name="attachment"><?php if (!empty($doc['attachment_path'])): ?><div style="margin-top:5px"><a target="_blank" href="<?= htmlspecialchars($doc['attachment_path']) ?>">📎 الملف الحالي</a></div><?php endif; ?></div>
         </div>
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn b1" type="submit" onclick="this.form.statut.value='brouillon'">💾 حفظ مسودة</button>
-            <button class="btn b2" type="submit" onclick="this.form.statut.value='finalise'">✅ حفظ نهائي</button>
-            <?php if (($doc['statut'] ?? '') === 'finalise'): ?><a class="btn b3" target="_blank" href="document.php?id=<?= $id ?>&type=<?= $type ?>&print=1">🖨️ طباعة</a><?php endif; ?>
+            <button class="btn b1" type="submit" name="statut" value="brouillon">💾 حفظ مسودة</button>
+            <button class="btn b2" type="submit" name="statut" value="finalise">✅ حفظ نهائي</button>
+            <?php if (($doc['statut'] ?? '') === 'finalise'): ?><a class="btn b3" target="_blank" href="document.php?id=<?= $id ?>&type=<?= $type ?>&print=1">🖨️ PDF</a><?php endif; ?>
         </div>
     </form>
 

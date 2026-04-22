@@ -3,6 +3,7 @@ if (!function_exists('isLoggedIn')) require_once 'config.php';
 $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
 $menuItems = [
+    ['page' => 'dashboard', 'icon' => '📈', 'label' => 'الإحصائيات', 'roles' => ['admin','haifa','khaoula','mohamed']],
     ['page' => 'index',   'icon' => '📊', 'label' => 'المتابعة',     'roles' => ['admin','haifa','khaoula','mohamed']],
     ['page' => 'ajouter', 'icon' => '🧾', 'label' => 'إضافة شكاية',  'roles' => ['admin','haifa']],
     ['page' => 'membres', 'icon' => '⚙️', 'label' => 'الإدارة',      'roles' => ['admin']],

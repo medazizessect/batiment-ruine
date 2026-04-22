@@ -1,6 +1,6 @@
 <?php
 $membresActifs = $pdo->query(
-    "SELECT * FROM membres WHERE actif = 1 ORDER BY ordre ASC"
+    "SELECT * FROM commission_members WHERE actif = 1 ORDER BY ordre ASC, id ASC"
 )->fetchAll(PDO::FETCH_ASSOC);
 
 $currentCommission = $commissionValue ?? '';
@@ -22,10 +22,11 @@ if (trim($currentCommission) !== '') {
     </div>
     <div class="membres-predefs" id="membres-predefs">
         <?php foreach ($membresActifs as $m): ?>
+            <?php $memberDisplay = trim(($m['titre'] ?? '') . ' ' . ($m['nom'] ?? '')); ?>
             <button type="button" class="predef-btn"
-                    data-nom="<?= htmlspecialchars($m['nom'],ENT_QUOTES) ?>"
+                    data-nom="<?= htmlspecialchars($memberDisplay, ENT_QUOTES) ?>"
                     onclick="toggleMembre(this)">
-                <?= htmlspecialchars($m['nom']) ?>
+                <?= htmlspecialchars($memberDisplay) ?>
             </button>
         <?php endforeach; ?>
     </div>
@@ -38,7 +39,7 @@ if (trim($currentCommission) !== '') {
 </div>
 <script>
 (function(){
-    var predefNames = <?= json_encode(array_column($membresActifs,'nom'),JSON_UNESCAPED_UNICODE) ?>;
+    var predefNames = <?= json_encode(array_map(function($m){ return trim(($m['titre'] ?? '') . ' ' . ($m['nom'] ?? '')); }, $membresActifs),JSON_UNESCAPED_UNICODE) ?>;
     var initial     = <?= json_encode($selectedMembres,JSON_UNESCAPED_UNICODE) ?>;
     var selected    = initial.slice();
     render(); syncBtns();

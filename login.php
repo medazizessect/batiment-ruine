@@ -36,7 +36,6 @@ try {
 } catch (Throwable $e) {
     error_log('Login DB fallback activated.');
 }
-$defaultUsername = array_key_first($users);
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -97,15 +96,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         input:focus{outline:none;border-color:#2e6da4}
         .users{
-            margin:12px 0;padding:11px;border:1px solid #e9ecef;border-radius:9px;background:#f8f9fb;
-            display:grid;grid-template-columns:1fr;gap:6px;
-        }
-        .u{
-            border:1px solid #dbe3ee;background:white;border-radius:8px;padding:7px 10px;
-            cursor:pointer;display:flex;justify-content:space-between;align-items:center;
-        }
-        .u.active{border-color:#2e6da4;background:#e8f0fb}
-        .u small{font-size:11px;color:#888}
         .btn{
             width:100%;padding:12px;border:none;border-radius:8px;cursor:pointer;
             background:linear-gradient(135deg,#1a3c5e,#2e6da4);color:white;font-weight:700;font-family:inherit;
@@ -123,15 +113,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if ($error): ?><div class="error">❌ <?= htmlspecialchars($error) ?></div><?php endif; ?>
 
     <form method="POST">
-        <input type="hidden" name="username" id="username-field" value="<?= htmlspecialchars($_POST['username'] ?? $defaultUsername) ?>">
-
-        <div class="users">
-            <?php foreach ($users as $uname => $info): ?>
-                <button type="button" class="u<?= (($uname === ($_POST['username'] ?? $defaultUsername)) ? ' active' : '') ?>" data-u="<?= htmlspecialchars($uname) ?>">
-                    <span><?= htmlspecialchars($info['nom']) ?></span>
-                    <small><?= roleLabel($info['role']) ?></small>
-                </button>
-            <?php endforeach; ?>
+        <div class="fg">
+            <label>اسم المستخدم</label>
+            <input type="text" name="username" autocomplete="username" value="<?= htmlspecialchars($_POST['username'] ?? '') ?>" required>
         </div>
 
         <div class="fg">
@@ -141,15 +125,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button class="btn" type="submit">🚀 تسجيل الدخول</button>
     </form>
 </div>
-
-<script>
-document.querySelectorAll('.u').forEach(function(btn){
-    btn.addEventListener('click', function(){
-        document.querySelectorAll('.u').forEach(function(b){ b.classList.remove('active'); });
-        btn.classList.add('active');
-        document.getElementById('username-field').value = btn.getAttribute('data-u');
-    });
-});
-</script>
 </body>
 </html>

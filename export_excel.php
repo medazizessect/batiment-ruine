@@ -1,18 +1,25 @@
 <?php
 error_reporting(0);
 ini_set('display_errors', 0);
+require 'config.php';
+requireLogin();
 require 'db.php';
 
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
 if ($search !== '') {
     $stmt = $pdo->prepare("
-        SELECT * FROM batiments
-        WHERE numero_rapport LIKE :s OR lieu LIKE :s
-           OR proprietaire   LIKE :s OR observations LIKE :s
-        ORDER BY id ASC
+        SELECT DISTINCT b.*
+        FROM batiments b
+        LEFT JOIN documents_officiels d ON d.batiment_id = b.id AND d.type='step2_pv'
+        LEFT JOIN adresses a ON a.id = d.address_id
+        WHERE b.numero_rapport LIKE :s1 OR b.lieu LIKE :s2
+           OR b.proprietaire LIKE :s3 OR b.observations LIKE :s4
+           OR b.bureau_ordre_id LIKE :s5 OR a.libelle LIKE :s6
+        ORDER BY b.id ASC
     ");
-    $stmt->execute([':s' => "%$search%"]);
+    $like = "%$search%";
+    $stmt->execute([':s1' => $like, ':s2' => $like, ':s3' => $like, ':s4' => $like, ':s5' => $like, ':s6' => $like]);
 } else {
     $stmt = $pdo->query("SELECT * FROM batiments ORDER BY id ASC");
 }
