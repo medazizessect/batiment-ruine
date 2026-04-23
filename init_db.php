@@ -18,6 +18,7 @@ try {
     $pdo->exec("DROP TABLE IF EXISTS batiments");
     $pdo->exec("DROP TABLE IF EXISTS adresses");
     $pdo->exec("DROP TABLE IF EXISTS pv_states");
+    $pdo->exec("DROP TABLE IF EXISTS commission_members");
     $pdo->exec("DROP TABLE IF EXISTS membres");
     $pdo->exec("DROP TABLE IF EXISTS modeles_documents");
 
@@ -127,6 +128,20 @@ try {
             actif TINYINT(1) DEFAULT 1
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
     ");
+
+    $pdo->exec("
+        CREATE TABLE commission_members (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nom VARCHAR(120) NOT NULL,
+            titre VARCHAR(120) NULL,
+            ordre INT NOT NULL DEFAULT 0,
+            actif TINYINT(1) NOT NULL DEFAULT 1
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
+    ");
+    $insComm = $pdo->prepare("INSERT INTO commission_members (nom, titre, ordre, actif) VALUES (?,?,?,1)");
+    $insComm->execute(['الرئيس', 'رئيس اللجنة', 1]);
+    $insComm->execute(['مهندس بلدي', 'عضو', 2]);
+    $insComm->execute(['ممثل الشؤون القانونية', 'عضو', 3]);
     $insUser = $pdo->prepare("INSERT INTO membres (nom, username, role, step_permissions, password) VALUES (?,?,?,?,?)");
     $insUser->execute(['المدير', 'admin', 'admin', json_encode(['step1_reclamation','step2_pv','step3_expert_request','step4_expert_report','step5_decision'], JSON_UNESCAPED_UNICODE), password_hash('admin123', PASSWORD_DEFAULT)]);
     $insUser->execute(['HAIFA', 'haifa', 'haifa', json_encode(['step1_reclamation','step2_pv'], JSON_UNESCAPED_UNICODE), password_hash('haifa123', PASSWORD_DEFAULT)]);

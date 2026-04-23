@@ -6,7 +6,19 @@ require '_steps_config.php';
 
 $search = trim($_GET['search'] ?? '');
 if ($search !== '') {
-    $q = $pdo->prepare("SELECT * FROM batiments WHERE bureau_ordre_id LIKE :s OR proprietaire LIKE :s ORDER BY id DESC");
+    $q = $pdo->prepare("
+        SELECT b.* FROM batiments b
+        WHERE b.bureau_ordre_id LIKE :s
+           OR b.proprietaire LIKE :s
+           OR b.lieu LIKE :s
+           OR EXISTS (
+               SELECT 1
+               FROM documents_officiels d
+               LEFT JOIN adresses a ON a.id = d.address_id
+               WHERE d.batiment_id = b.id AND a.libelle LIKE :s
+           )
+        ORDER BY b.id DESC
+    ");
     $q->execute([':s' => "%$search%"]);
 } else {
     $q = $pdo->query("SELECT * FROM batiments ORDER BY id DESC");
@@ -64,15 +76,17 @@ tbody td{padding:8px;border:1px solid #e9ecef;font-size:12px;vertical-align:top}
 </head>
 <body>
 <?php include '_menu.php'; ?>
-<header><h2 style="margin:0">متابعة المسار (5 مراحل)</h2></header>
+<header><h2 style="margin:0">متابعة المسار</h2></header>
 <div class="wrap">
     <?php if (!empty($_GET['msg'])): ?><div style="background:#d4edda;border:1px solid #c3e6cb;padding:10px;border-radius:8px;margin-bottom:10px">✅ تمت العملية بنجاح</div><?php endif; ?>
     <div class="toolbar">
         <div>
             <?php if (hasStepAccess('step1_reclamation')): ?><a class="btn b-add" href="ajouter.php">➕ إضافة شكاية</a><?php endif; ?>
+            <a class="btn b-cancel" href="export_excel.php<?= $search !== '' ? '?search=' . urlencode($search) : '' ?>">📗 Excel</a>
+            <a class="btn b-cancel" target="_blank" href="export_pdf.php<?= $search !== '' ? '?search=' . urlencode($search) : '' ?>">📄 PDF</a>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
-            <form method="GET" class="search"><button aria-label="بحث">🔍</button><input name="search" value="<?= htmlspecialchars($search) ?>" placeholder="ID bureau d'ordre / مالك"></form>
+            <form method="GET" class="search"><button aria-label="بحث">🔍</button><input name="search" value="<?= htmlspecialchars($search) ?>" placeholder="ID / مالك / عنوان"></form>
             <?php if ($search !== ''): ?><a href="index.php" class="btn b-cancel">✖</a><?php endif; ?>
         </div>
     </div>

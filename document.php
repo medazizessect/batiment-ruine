@@ -66,7 +66,6 @@ function nextPvNumber($pdo) {
 }
 
 $addresses = $pdo->query("SELECT id, libelle FROM adresses ORDER BY libelle ASC LIMIT 5000")->fetchAll(PDO::FETCH_ASSOC);
-$pvStates = $pdo->query("SELECT id, libelle FROM pv_states ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
 $msg = '';
 $errors = [];
 
@@ -155,6 +154,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 :expert_name,:report_type,:heritage_needed,:heritage_direction,:appointment_date,:decision_type,:attachment_path,:observations)";
         }
         $pdo->prepare($sql)->execute($payload);
+        if ($type === 'step2_pv') {
+            $pdo->prepare("UPDATE batiments SET commission=? WHERE id=?")
+                ->execute([trim($_POST['commission'] ?? '') ?: null, $id]);
+        }
         header("Location: document.php?id=$id&type=$type&saved=1");
         exit;
     }
@@ -170,6 +173,12 @@ if (isset($_GET['print'])) {
     }
     $v = $doc;
     $label = $cfg['label'];
+    $addressLabel = '';
+    if (!empty($v['address_id'])) {
+        $a = $pdo->prepare("SELECT libelle FROM adresses WHERE id=?");
+        $a->execute([(int)$v['address_id']]);
+        $addressLabel = (string)($a->fetchColumn() ?: '');
+    }
     include 'document_print.php';
     exit;
 }
@@ -216,10 +225,10 @@ if (in_array($type, ['step3_expert_request','step4_expert_report'], true)) {
     <?php if ($errors): ?><div class="err"><?php foreach ($errors as $e) echo '• '.htmlspecialchars($e).'<br>'; ?></div><?php endif; ?>
 
     <form method="POST" enctype="multipart/form-data" class="card">
+        <input type="hidden" name="statut" value="<?= (($doc['statut'] ?? '') === 'finalise') ? 'finalise' : 'brouillon' ?>">
         <div class="grid">
             <div><label>رقم الوثيقة</label><input type="text" name="numero_doc" value="<?= htmlspecialchars($doc['numero_doc'] ?? '') ?>"></div>
             <div><label>تاريخ الوثيقة</label><input type="date" name="date_doc" value="<?= htmlspecialchars($doc['date_doc'] ?? '') ?>"></div>
-            <div><label>الحالة</label><select name="statut"><option value="brouillon" <?= (($doc['statut'] ?? '') === 'brouillon') ? 'selected' : '' ?>>مسودة</option><option value="finalise" <?= (($doc['statut'] ?? '') === 'finalise') ? 'selected' : '' ?>>نهائي</option></select></div>
 
             <?php if ($type === 'step2_pv'): ?>
                 <div><label>CIN (اختياري)</label><input type="text" name="cin" value="<?= htmlspecialchars($doc['cin'] ?? '') ?>"></div>
@@ -228,8 +237,11 @@ if (in_array($type, ['step3_expert_request','step4_expert_report'], true)) {
                 <div id="occupiedWrap" style="display:none"><label>المشغول</label><input type="text" name="occupied_by" value="<?= htmlspecialchars($doc['occupied_by'] ?? '') ?>"></div>
                 <div><label>درجة التأكيد</label><input type="text" name="confirmation_degree" value="<?= htmlspecialchars($doc['confirmation_degree'] ?? '') ?>"></div>
                 <div><label>المكان</label><select name="address_id"><option value="">-- اختر عنوانا --</option><?php foreach($addresses as $a): ?><option value="<?= $a['id'] ?>" <?= ((int)($doc['address_id'] ?? 0) === (int)$a['id']) ? 'selected' : '' ?>><?= htmlspecialchars($a['libelle']) ?></option><?php endforeach; ?></select></div>
-                <div><label>حالة المحضر</label><select name="pv_state_id"><option value="">--</option><?php foreach($pvStates as $s): ?><option value="<?= $s['id'] ?>" <?= ((int)($doc['pv_state_id'] ?? 0) === (int)$s['id']) ? 'selected' : '' ?>><?= htmlspecialchars($s['libelle']) ?></option><?php endforeach; ?></select></div>
                 <div><label><input type="checkbox" name="forward_to_ministry" value="1" <?= !empty($doc['forward_to_ministry']) ? 'checked' : '' ?>> توجيه وزارة التجهيز (اختياري)</label></div>
+                <div class="full">
+                    <label>اللجنة</label>
+                    <?php $commissionValue = (string)($case['commission'] ?? ''); include '_commission.php'; ?>
+                </div>
             <?php endif; ?>
 
             <?php if ($type === 'step3_expert_request'): ?>
