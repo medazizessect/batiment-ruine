@@ -49,7 +49,7 @@ function rowStatus($docSet) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>متابعة المسار</title>
+<title>متابعة الملفات</title>
 <style>
 *{box-sizing:border-box} body{margin:0;font-family:Segoe UI,Arial;background:#f0f2f5;direction:rtl}
 header{background:linear-gradient(135deg,#1a3c5e,#2e6da4);color:white;padding:16px 22px;position:sticky;top:0;z-index:100}
