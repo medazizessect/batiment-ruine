@@ -194,5 +194,8 @@ textarea{resize:vertical;min-height:80px;line-height:1.7}
     color:#c0392b!important;border-right-color:#c0392b!important;
 }
 
+.io-sader{background:#fff3cd;color:#856404;border-radius:10px;padding:1px 6px;font-size:10px}
+.io-wared{background:#d4edda;color:#155724;border-radius:10px;padding:1px 6px;font-size:10px}
+
 @media(max-width:600px){.grid{grid-template-columns:1fr}}
 </style>

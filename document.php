@@ -254,7 +254,28 @@ if (in_array($type, ['step3_expert_request','step4_expert_report'], true)) {
                 <div><label>مستغلة من</label><select id="exploite_by" name="exploite_by"><option value="">--</option><option value="oui" <?= (($doc['exploite_by'] ?? '') === 'oui') ? 'selected' : '' ?>>نعم</option><option value="non" <?= (($doc['exploite_by'] ?? '') === 'non') ? 'selected' : '' ?>>لا</option></select></div>
                 <div id="occupiedWrap" style="display:none"><label>المشغول</label><input type="text" name="occupied_by" value="<?= htmlspecialchars($doc['occupied_by'] ?? '') ?>"></div>
                 <div><label>درجة التأكيد</label><input type="text" name="confirmation_degree" value="<?= htmlspecialchars($doc['confirmation_degree'] ?? '') ?>"></div>
-                <div><label>المكان</label><select name="address_id"><option value="">-- اختر عنوانا --</option><?php foreach($addresses as $a): ?><option value="<?= $a['id'] ?>" <?= ((int)($doc['address_id'] ?? 0) === (int)$a['id']) ? 'selected' : '' ?>><?= htmlspecialchars($a['libelle']) ?></option><?php endforeach; ?></select></div>
+                <div>
+                    <label>المكان</label>
+                    <?php
+                    $currentAddrLabel = '';
+                    if (!empty($doc['address_id'])) {
+                        foreach($addresses as $a) {
+                            if ((int)$a['id'] === (int)$doc['address_id']) { $currentAddrLabel = $a['libelle']; break; }
+                        }
+                    }
+                    ?>
+                    <input type="text" id="address-search" list="address-datalist"
+                           placeholder="ابحث عن العنوان..."
+                           value="<?= htmlspecialchars($currentAddrLabel) ?>"
+                           autocomplete="off">
+                    <input type="hidden" name="address_id" id="address-id"
+                           value="<?= (int)($doc['address_id'] ?? 0) ?: '' ?>">
+                    <datalist id="address-datalist">
+                        <?php foreach($addresses as $a): ?>
+                        <option data-id="<?= $a['id'] ?>" value="<?= htmlspecialchars($a['libelle']) ?>">
+                        <?php endforeach; ?>
+                    </datalist>
+                </div>
                 <div><label><input type="checkbox" name="forward_to_ministry" value="1" <?= !empty($doc['forward_to_ministry']) ? 'checked' : '' ?>> توجيه وزارة التجهيز (اختياري)</label></div>
                 <div class="full">
                     <label>أعضاء اللجنة</label>
@@ -318,7 +339,28 @@ if (in_array($type, ['step3_expert_request','step4_expert_report'], true)) {
 </div>
 <script>
 function toggleOccupied(){var s=document.getElementById('exploite_by');var w=document.getElementById('occupiedWrap');if(!s||!w)return;w.style.display=(s.value==='oui')?'block':'none';}
-document.addEventListener('DOMContentLoaded',function(){var s=document.getElementById('exploite_by');if(s){s.addEventListener('change',toggleOccupied);toggleOccupied();}});
+document.addEventListener('DOMContentLoaded',function(){
+    var s=document.getElementById('exploite_by');
+    if(s){s.addEventListener('change',toggleOccupied);toggleOccupied();}
+
+    // Address autocomplete: map selected label to ID via hidden field
+    var addrInput = document.getElementById('address-search');
+    var addrHidden = document.getElementById('address-id');
+    if (addrInput && addrHidden) {
+        var addrMap = {};
+        document.querySelectorAll('#address-datalist option').forEach(function(opt){
+            addrMap[opt.value] = opt.getAttribute('data-id');
+        });
+        addrInput.addEventListener('input', function(){
+            var id = addrMap[this.value];
+            addrHidden.value = id ? id : '';
+        });
+        addrInput.addEventListener('change', function(){
+            var id = addrMap[this.value];
+            addrHidden.value = id ? id : '';
+        });
+    }
+});
 </script>
 </body>
 </html>
