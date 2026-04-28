@@ -4,11 +4,11 @@ requireRole('admin');
 require 'db.php';
 
 $stepLabels = [
-    'step1_reclamation' => '1',
-    'step2_pv' => '2',
-    'step3_expert_request' => '3',
-    'step4_expert_report' => '4',
-    'step5_decision' => '5',
+    'step1_reclamation'    => 'شكاوي (مرحلة 1)',
+    'step2_pv'             => 'محضر (مرحلة 2)',
+    'step3_expert_request' => 'تكليف خبير (مرحلة 3)',
+    'step4_expert_report'  => 'رجوع التقرير (مرحلة 4)',
+    'step5_decision'       => 'القرار النهائي (مرحلة 5)',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

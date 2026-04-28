@@ -3,10 +3,11 @@ if (!function_exists('isLoggedIn')) require_once 'config.php';
 $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
 $menuItems = [
-    ['page' => 'dashboard', 'icon' => '📈', 'label' => 'الإحصائيات', 'roles' => ['admin','haifa','khaoula','mohamed']],
-    ['page' => 'index',   'icon' => '📊', 'label' => 'المتابعة',     'roles' => ['admin','haifa','khaoula','mohamed']],
-    ['page' => 'ajouter', 'icon' => '🧾', 'label' => 'إضافة شكاية',  'roles' => ['admin','haifa']],
-    ['page' => 'membres', 'icon' => '⚙️', 'label' => 'الإدارة',      'roles' => ['admin']],
+    ['page' => 'dashboard',  'icon' => '📈', 'label' => 'الإحصائيات',   'roles' => ['admin','haifa','khaoula','mohamed','ali','mourad','ahmed']],
+    ['page' => 'index',      'icon' => '📊', 'label' => 'المتابعة',      'roles' => ['admin','haifa','khaoula','mohamed','ali','mourad','ahmed']],
+    ['page' => 'calendrier', 'icon' => '📅', 'label' => 'تاريخ التوجية', 'roles' => ['admin','haifa','khaoula','mohamed','ali','mourad','ahmed']],
+    ['page' => 'ajouter',    'icon' => '🧾', 'label' => 'إضافة شكاية',   'roles' => ['admin','haifa','ali','mourad','ahmed']],
+    ['page' => 'membres',    'icon' => '⚙️', 'label' => 'الإدارة',       'roles' => ['admin']],
 ];
 ?>
 

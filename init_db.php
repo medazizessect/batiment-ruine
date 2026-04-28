@@ -14,6 +14,7 @@ try {
     $pdo->exec("USE batiments_ruine");
 
     $pdo->exec("DROP TABLE IF EXISTS correspondences");
+    $pdo->exec("DROP TABLE IF EXISTS calendar_events");
     $pdo->exec("DROP TABLE IF EXISTS documents_officiels");
     $pdo->exec("DROP TABLE IF EXISTS batiments");
     $pdo->exec("DROP TABLE IF EXISTS adresses");
@@ -133,7 +134,7 @@ try {
             id INT AUTO_INCREMENT PRIMARY KEY,
             nom VARCHAR(120) NOT NULL,
             username VARCHAR(80) NOT NULL UNIQUE,
-            role ENUM('admin','haifa','khaoula','mohamed') NOT NULL,
+            role VARCHAR(30) NOT NULL,
             step_permissions TEXT NULL,
             password VARCHAR(120) NOT NULL,
             actif TINYINT(1) DEFAULT 1
@@ -148,6 +149,22 @@ try {
     $insUser->execute(['HAIFA', 'haifa', 'haifa', json_encode(['step1_reclamation','step2_pv'], JSON_UNESCAPED_UNICODE), password_hash($haifaPassword, PASSWORD_DEFAULT)]);
     $insUser->execute(['KHAOULA', 'khaoula', 'khaoula', json_encode(['step3_expert_request','step4_expert_report'], JSON_UNESCAPED_UNICODE), password_hash($khaoulaPassword, PASSWORD_DEFAULT)]);
     $insUser->execute(['MOHAMED', 'mohamed', 'mohamed', json_encode(['step5_decision'], JSON_UNESCAPED_UNICODE), password_hash($mohamedPassword, PASSWORD_DEFAULT)]);
+    $insUser->execute(['ALI', 'ali', 'ali', json_encode(['step1_reclamation','step2_pv'], JSON_UNESCAPED_UNICODE), password_hash('ali123', PASSWORD_DEFAULT)]);
+    $insUser->execute(['MOURAD', 'mourad', 'mourad', json_encode(['step1_reclamation','step2_pv'], JSON_UNESCAPED_UNICODE), password_hash('mourad123', PASSWORD_DEFAULT)]);
+    $insUser->execute(['AHMED', 'ahmed', 'ahmed', json_encode(['step1_reclamation','step2_pv'], JSON_UNESCAPED_UNICODE), password_hash('ahmed123', PASSWORD_DEFAULT)]);
+
+    $pdo->exec("
+        CREATE TABLE calendar_events (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            batiment_id INT NULL,
+            titre VARCHAR(255) NOT NULL,
+            date_evenement DATE NOT NULL,
+            notes TEXT NULL,
+            created_by VARCHAR(80) NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (batiment_id) REFERENCES batiments(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
+    ");
 
     $pdo->exec("
         CREATE TABLE modeles_documents (

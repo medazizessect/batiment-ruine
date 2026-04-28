@@ -79,7 +79,7 @@ function hasRole($role) {
     ];
 
     if ($role === 'agent') {
-        return in_array($current, ['admin','haifa','khaoula','mohamed'], true);
+        return in_array($current, ['admin','haifa','khaoula','mohamed','ali','mourad','ahmed'], true);
     }
     if ($role === 'viewer') {
         return true;
@@ -126,10 +126,13 @@ function requireStepAccess($stepType) {
 
 function roleLabel($role) {
     return [
-        'admin' => 'مدير',
-        'haifa' => 'HAIFA',
+        'admin'   => 'مدير',
+        'haifa'   => 'HAIFA',
         'khaoula' => 'KHAOULA',
         'mohamed' => 'MOHAMED',
+        'ali'     => 'ALI',
+        'mourad'  => 'MOURAD',
+        'ahmed'   => 'AHMED',
     ][$role] ?? $role;
 }
 ?>

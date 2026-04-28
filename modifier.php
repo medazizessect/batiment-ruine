@@ -97,6 +97,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hasStepAccess('step1_reclamation'))
         </div>
     </form>
     <?php endif; ?>
+
+    <?php
+    // Full dossier attachments — visible to all logged-in members
+    $allDocs = $pdo->prepare("SELECT * FROM documents_officiels WHERE batiment_id=? ORDER BY id ASC");
+    $allDocs->execute([$id]);
+    $allDocRows = $allDocs->fetchAll(PDO::FETCH_ASSOC);
+
+    $stepLabels = [
+        'step2_pv'             => ['icon'=>'📋','label'=>'محضر'],
+        'step3_expert_request' => ['icon'=>'⚖️','label'=>'تكليف خبير'],
+        'step4_expert_report'  => ['icon'=>'🧪','label'=>'رجوع التقرير'],
+        'step5_decision'       => ['icon'=>'✅','label'=>'قرار الإخلاء/الهدم'],
+    ];
+
+    $scanPath = $case['reclamation_scan_path'] ?? '';
+    $hasAnyAttachment = ($scanPath !== '') || count(array_filter($allDocRows, fn($r) => !empty($r['attachment_path']))) > 0;
+    ?>
+
+    <div class="sec sec-docs" style="margin-top:20px">📎 جميع الوثائق والمرفقات</div>
+    <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+        <?php if (!$hasAnyAttachment): ?>
+            <p style="color:#888;text-align:center">لا توجد مرفقات حتى الآن.</p>
+        <?php endif; ?>
+
+        <?php if ($scanPath !== ''): ?>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f2f5">
+            <span style="font-size:20px">🧾</span>
+            <div style="flex:1">
+                <div style="font-weight:700;font-size:13px">شكاية — ملف ممسوح</div>
+                <div style="font-size:11px;color:#888">المرحلة 1</div>
+            </div>
+            <a href="<?= htmlspecialchars($scanPath) ?>" target="_blank"
+               style="padding:6px 14px;background:#2e6da4;color:#fff;border-radius:7px;text-decoration:none;font-size:12px">📥 تحميل</a>
+        </div>
+        <?php endif; ?>
+
+        <?php foreach($allDocRows as $dr):
+            if (empty($dr['attachment_path'])) continue;
+            $si = $stepLabels[$dr['type']] ?? ['icon'=>'📄','label'=>$dr['type']];
+        ?>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f2f5">
+            <span style="font-size:20px"><?= $si['icon'] ?></span>
+            <div style="flex:1">
+                <div style="font-weight:700;font-size:13px"><?= htmlspecialchars($si['label']) ?></div>
+                <div style="font-size:11px;color:#888">
+                    رقم: <?= htmlspecialchars($dr['numero_doc'] ?? '—') ?> |
+                    التاريخ: <?= !empty($dr['date_doc']) ? date('d/m/Y', strtotime($dr['date_doc'])) : '—' ?> |
+                    الحالة: <?= $dr['statut'] === 'finalise' ? '✅ نهائي' : '✏️ مسودة' ?>
+                </div>
+            </div>
+            <a href="<?= htmlspecialchars($dr['attachment_path']) ?>" target="_blank"
+               style="padding:6px 14px;background:#28a745;color:#fff;border-radius:7px;text-decoration:none;font-size:12px">📥 تحميل</a>
+        </div>
+        <?php endforeach; ?>
+
+        <?php
+        // Show correspondences attachments
+        $corrRows = $pdo->prepare("SELECT * FROM correspondences WHERE batiment_id=? AND attachment_path IS NOT NULL AND attachment_path<>'' ORDER BY id ASC");
+        $corrRows->execute([$id]);
+        foreach($corrRows->fetchAll(PDO::FETCH_ASSOC) as $cr):
+        ?>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f2f5">
+            <span style="font-size:20px">📬</span>
+            <div style="flex:1">
+                <div style="font-weight:700;font-size:13px">مراسلة: <?= htmlspecialchars($cr['subject']) ?></div>
+                <div style="font-size:11px;color:#888">
+                    <?= htmlspecialchars($cr['administration']) ?> |
+                    <span class="<?= $cr['direction_io'] === 'wared' ? 'io-wared' : 'io-sader' ?>"><?= $cr['direction_io'] === 'wared' ? 'وارد' : 'صادر' ?></span>
+                </div>
+            </div>
+            <a href="<?= htmlspecialchars($cr['attachment_path']) ?>" target="_blank"
+               style="padding:6px 14px;background:#6c757d;color:#fff;border-radius:7px;text-decoration:none;font-size:12px">📥 تحميل</a>
+        </div>
+        <?php endforeach; ?>
+    </div>
 </div>
 </body>
 </html>
