@@ -14,6 +14,14 @@ try {
         $password
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    $hasMembres = $pdo->query("SHOW TABLES LIKE 'membres'")->fetchColumn();
+    if ($hasMembres) {
+        $hasStepPermissions = $pdo->query("SHOW COLUMNS FROM membres LIKE 'step_permissions'")->fetchColumn();
+        if (!$hasStepPermissions) {
+            $pdo->exec("ALTER TABLE membres ADD COLUMN step_permissions TEXT NULL AFTER role");
+        }
+    }
 } catch (PDOException $e) {
     die("
     <div style='font-family:Arial;padding:30px;text-align:center'>

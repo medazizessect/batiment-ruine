@@ -5,39 +5,7 @@ ini_set('display_errors', 1);
 $host = 'localhost';
 $username = 'root';
 $password = '';
-
-function readArabicAddressesFromXlsx($path) {
-    if (!is_file($path) || !class_exists('ZipArchive')) return [];
-    $zip = new ZipArchive();
-    if ($zip->open($path) !== true) return [];
-    $xml = $zip->getFromName('xl/worksheets/sheet.xml');
-    $zip->close();
-    if (!$xml) return [];
-
-    $sx = @simplexml_load_string($xml);
-    if (!$sx) return [];
-    $sx->registerXPathNamespace('a', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
-
-    $labels = [];
-    foreach ($sx->xpath('//a:sheetData/a:row') as $ri => $row) {
-        if ($ri === 0) continue;
-        $cells = $row->xpath('a:c');
-        $nomAr = '';
-        foreach ($cells as $cell) {
-            $ref = (string)$cell['r'];
-            if (preg_match('/^E\d+$/', $ref)) {
-                if ((string)$cell['t'] === 'inlineStr') {
-                    $nomAr = trim((string)($cell->is->t ?? ''));
-                } else {
-                    $nomAr = trim((string)($cell->v ?? ''));
-                }
-                break;
-            }
-        }
-        if ($nomAr !== '' && mb_strlen($nomAr) > 2) $labels[$nomAr] = true;
-    }
-    return array_keys($labels);
-}
+require_once __DIR__ . '/address_import_utils.php';
 
 try {
     $pdo = new PDO("mysql:host=$host;charset=utf8", $username, $password);
@@ -154,15 +122,16 @@ try {
             nom VARCHAR(120) NOT NULL,
             username VARCHAR(80) NOT NULL UNIQUE,
             role ENUM('admin','haifa','khaoula','mohamed') NOT NULL,
+            step_permissions TEXT NULL,
             password VARCHAR(120) NOT NULL,
             actif TINYINT(1) DEFAULT 1
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
     ");
-    $insUser = $pdo->prepare("INSERT INTO membres (nom, username, role, password) VALUES (?,?,?,?)");
-    $insUser->execute(['المدير', 'admin', 'admin', password_hash('admin123', PASSWORD_DEFAULT)]);
-    $insUser->execute(['HAIFA', 'haifa', 'haifa', password_hash('haifa123', PASSWORD_DEFAULT)]);
-    $insUser->execute(['KHAOULA', 'khaoula', 'khaoula', password_hash('khaoula123', PASSWORD_DEFAULT)]);
-    $insUser->execute(['MOHAMED', 'mohamed', 'mohamed', password_hash('mohamed123', PASSWORD_DEFAULT)]);
+    $insUser = $pdo->prepare("INSERT INTO membres (nom, username, role, step_permissions, password) VALUES (?,?,?,?,?)");
+    $insUser->execute(['المدير', 'admin', 'admin', json_encode(['step1_reclamation','step2_pv','step3_expert_request','step4_expert_report','step5_decision'], JSON_UNESCAPED_UNICODE), password_hash('admin123', PASSWORD_DEFAULT)]);
+    $insUser->execute(['HAIFA', 'haifa', 'haifa', json_encode(['step1_reclamation','step2_pv'], JSON_UNESCAPED_UNICODE), password_hash('haifa123', PASSWORD_DEFAULT)]);
+    $insUser->execute(['KHAOULA', 'khaoula', 'khaoula', json_encode(['step3_expert_request','step4_expert_report'], JSON_UNESCAPED_UNICODE), password_hash('khaoula123', PASSWORD_DEFAULT)]);
+    $insUser->execute(['MOHAMED', 'mohamed', 'mohamed', json_encode(['step5_decision'], JSON_UNESCAPED_UNICODE), password_hash('mohamed123', PASSWORD_DEFAULT)]);
 
     $pdo->exec("
         CREATE TABLE modeles_documents (
