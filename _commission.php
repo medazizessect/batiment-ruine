@@ -17,12 +17,12 @@ if (trim($currentCommission) !== '') {
     <div class="tags-box" id="tags-box" onclick="focusTagInput()">
         <div id="tags-container"></div>
         <input type="text" class="tag-input" id="tag-input"
-               placeholder="اكتب اسماً وأضغط Enter..."
+               placeholder="اكتب الاسم واللقب وأضغط Enter..."
                autocomplete="off">
     </div>
     <div class="membres-predefs" id="membres-predefs">
         <?php foreach ($membresActifs as $m): ?>
-            <?php $memberDisplay = trim(($m['titre'] ?? '') . ' ' . ($m['nom'] ?? '')); ?>
+            <?php $memberDisplay = trim(($m['titre'] ?? '') . ' - ' . ($m['nom'] ?? '')); ?>
             <button type="button" class="predef-btn"
                     data-nom="<?= htmlspecialchars($memberDisplay, ENT_QUOTES) ?>"
                     onclick="toggleMembre(this)">
@@ -32,14 +32,14 @@ if (trim($currentCommission) !== '') {
     </div>
     <p class="commission-hint">
         💡 انقر على الأسماء لإضافتها أو إزالتها —
-        أو اكتب اسماً يدوياً واضغط <kbd>Enter</kbd>
+        أو اكتب الاسم واللقب يدوياً واضغط <kbd>Enter</kbd>
     </p>
     <input type="hidden" name="commission" id="commission-hidden"
            value="<?= htmlspecialchars($currentCommission,ENT_QUOTES) ?>">
 </div>
 <script>
 (function(){
-    var predefNames = <?= json_encode(array_map(function($m){ return trim(($m['titre'] ?? '') . ' ' . ($m['nom'] ?? '')); }, $membresActifs),JSON_UNESCAPED_UNICODE) ?>;
+    var predefNames = <?= json_encode(array_map(function($m){ return trim(($m['titre'] ?? '') . ' - ' . ($m['nom'] ?? '')); }, $membresActifs),JSON_UNESCAPED_UNICODE) ?>;
     var initial     = <?= json_encode($selectedMembres,JSON_UNESCAPED_UNICODE) ?>;
     var selected    = initial.slice();
     render(); syncBtns();

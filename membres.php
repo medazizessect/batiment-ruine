@@ -73,10 +73,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'add_commission_member') {
         $nom = trim($_POST['nom'] ?? '');
         $titre = trim($_POST['titre'] ?? '');
+        $ordreInput = (int)($_POST['ordre'] ?? 0);
         if ($nom !== '' && $titre !== '') {
-            $nextOrder = (int)$pdo->query("SELECT COALESCE(MAX(ordre), 0) + 1 FROM commission_members")->fetchColumn();
+            $nextOrder = $ordreInput > 0
+                ? $ordreInput
+                : (int)$pdo->query("SELECT COALESCE(MAX(ordre), 0) + 1 FROM commission_members")->fetchColumn();
             $pdo->prepare("INSERT INTO commission_members (titre, nom, ordre, actif) VALUES (?,?,?,1)")
                 ->execute([$titre, $nom, $nextOrder]);
+        }
+    } elseif ($action === 'update_commission_member') {
+        $id = intval($_POST['id'] ?? 0);
+        $nom = trim($_POST['nom'] ?? '');
+        $titre = trim($_POST['titre'] ?? '');
+        $ordre = max(1, intval($_POST['ordre'] ?? 1));
+        if ($id > 0 && $nom !== '' && $titre !== '') {
+            $pdo->prepare("UPDATE commission_members SET titre=?, nom=?, ordre=? WHERE id=?")
+                ->execute([$titre, $nom, $ordre, $id]);
         }
     } elseif ($action === 'delete_commission_member') {
         $pdo->prepare("DELETE FROM commission_members WHERE id=?")->execute([intval($_POST['id'] ?? 0)]);
@@ -114,19 +126,28 @@ input,select{padding:7px 9px;border:1px solid #ddd;border-radius:7px;width:100%;
     <h3>أعضاء اللجنة</h3>
     <form method="POST" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <input type="hidden" name="action" value="add_commission_member">
-        <input name="titre" placeholder="الصفة / اللقب" required style="max-width:220px">
-        <input name="nom" placeholder="اسم العضو" required style="max-width:260px">
+        <input name="titre" placeholder="الصفة" required style="max-width:220px">
+        <input name="nom" placeholder="الاسم واللقب" required style="max-width:260px">
+        <input type="number" name="ordre" min="1" placeholder="الترتيب" style="max-width:120px">
         <button class="btn b1">➕</button>
     </form>
     <div style="max-height:260px;overflow:auto">
         <table>
-            <tr><th>#</th><th>الصفة</th><th>الاسم</th><th></th></tr>
+            <tr><th>#</th><th>الصفة</th><th>الاسم واللقب</th><th>إجراءات</th></tr>
             <?php foreach($commissionMembers as $cm): ?>
+            <?php $formId = 'cm-update-' . (int)$cm['id']; ?>
             <tr>
-                <td><?= (int)$cm['ordre'] ?></td>
-                <td><?= htmlspecialchars($cm['titre']) ?></td>
-                <td><?= htmlspecialchars($cm['nom']) ?></td>
                 <td>
+                    <input type="number" min="1" name="ordre" value="<?= (int)$cm['ordre'] ?>" style="max-width:80px" form="<?= $formId ?>">
+                </td>
+                <td><input name="titre" value="<?= htmlspecialchars($cm['titre']) ?>" style="min-width:160px" form="<?= $formId ?>"></td>
+                <td><input name="nom" value="<?= htmlspecialchars($cm['nom']) ?>" style="min-width:220px" form="<?= $formId ?>"></td>
+                <td style="display:flex;gap:6px">
+                    <form method="POST" id="<?= $formId ?>">
+                        <input type="hidden" name="action" value="update_commission_member">
+                        <input type="hidden" name="id" value="<?= (int)$cm['id'] ?>">
+                    </form>
+                    <button class="btn b1" type="submit" form="<?= $formId ?>">💾</button>
                     <form method="POST" onsubmit="return confirm('حذف عضو اللجنة؟')">
                         <input type="hidden" name="action" value="delete_commission_member">
                         <input type="hidden" name="id" value="<?= (int)$cm['id'] ?>">
