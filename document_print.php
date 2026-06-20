@@ -1,7 +1,46 @@
 <?php
+// Tunisian Arabic month names (as used in Tunisia)
+function arabicDateTN($dateStr) {
+    $months = ['جانفي','فيفري','مارس','أفريل','ماي','جوان','جويلية','أوت','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    $ts = strtotime((string)$dateStr);
+    if (!$ts) return htmlspecialchars((string)$dateStr);
+    return (int)date('d', $ts) . ' ' . $months[(int)date('n', $ts) - 1] . ' ' . date('Y', $ts);
+}
+
 $numDoc = $v['numero_doc'] ?? '';
-$dateDoc = !empty($v['date_doc']) ? date('d/m/Y', strtotime($v['date_doc'])) : date('d/m/Y');
-$commissionMembers = trim((string)($v['commission_members'] ?? $case['commission'] ?? ''));
+$dateDoc = !empty($v['date_doc']) ? arabicDateTN($v['date_doc']) : arabicDateTN(date('Y-m-d'));
+
+// Commission members: use stored value (title - name format) with DB fallback
+$rawCommission = trim((string)($v['commission_members'] ?? $case['commission'] ?? ''));
+if ($rawCommission !== '') {
+    // Enrich entries that are plain names (no ' - ' separator) with titles from DB
+    $parts = array_filter(array_map('trim', preg_split('/\s*\/\s*/u', $rawCommission)));
+    $cmByNom = [];
+    try {
+        $cmRows = $pdo->query("SELECT titre, nom FROM commission_members WHERE actif=1 ORDER BY ordre ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($cmRows as $cm) $cmByNom[trim($cm['nom'])] = trim($cm['titre']);
+    } catch (Exception $e) {}
+    $richParts = [];
+    foreach ($parts as $p) {
+        if (strpos($p, ' - ') === false && isset($cmByNom[$p])) {
+            $richParts[] = $cmByNom[$p] . ' - ' . $p;
+        } else {
+            $richParts[] = $p;
+        }
+    }
+    $commissionMembers = implode(' / ', $richParts);
+} else {
+    // Fallback: fetch all active commission members from the table
+    $commissionMembers = '';
+    try {
+        $cmRows = $pdo->query("SELECT titre, nom FROM commission_members WHERE actif=1 ORDER BY ordre ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
+        if (!empty($cmRows)) {
+            $richParts = [];
+            foreach ($cmRows as $cm) $richParts[] = trim($cm['titre']) . ' - ' . trim($cm['nom']);
+            $commissionMembers = implode(' / ', $richParts);
+        }
+    } catch (Exception $e) {}
+}
 $ownerLabel = trim((string)($v['owner_name'] ?? ''));
 if ($ownerLabel === '') $ownerLabel = trim((string)($case['proprietaire'] ?? ''));
 $printTitle = $label;
