@@ -33,6 +33,7 @@ $dateDoc = !empty($v['date_doc']) ? date('d/m/Y', strtotime($v['date_doc'])) : d
   <div class="r"><b>المالك:</b> <?= htmlspecialchars($case['proprietaire'] ?? '') ?></div>
   <?php if (!empty($v['cin'])): ?><div class="r"><b>CIN:</b> <?= htmlspecialchars($v['cin']) ?></div><?php endif; ?>
   <?php if (!empty($v['owner_name'])): ?><div class="r"><b>مالك:</b> <?= htmlspecialchars($v['owner_name']) ?></div><?php endif; ?>
+  <?php if (!empty($case['commission'])): ?><div class="r"><b>أعضاء اللجنة:</b> <?= nl2br(htmlspecialchars($case['commission'])) ?></div><?php endif; ?>
   <?php if (!empty($v['occupied_by'])): ?><div class="r"><b>المشغول:</b> <?= htmlspecialchars($v['occupied_by']) ?></div><?php endif; ?>
   <?php if (!empty($v['subject'])): ?><div class="r"><b>الموضوع:</b> <?= htmlspecialchars($v['subject']) ?></div><?php endif; ?>
   <?php if (!empty($v['expert_name'])): ?><div class="r"><b>الخبير:</b> <?= htmlspecialchars($v['expert_name']) ?></div><?php endif; ?>
